@@ -1,11 +1,14 @@
 package agent
 
 import (
+	"fmt"
 	"os"
+	"path"
+
+	"github.com/KTachibanaM/mear/lib"
 )
 
-// func Agent(input, output *lib.S3Target) error {
-func Agent() error {
+func Agent(input, output *lib.S3Target) error {
 	// 1. Download ffmpeg
 	ffmpeg_workspace, err := os.MkdirTemp(os.TempDir(), "mear-ffmpeg")
 	if err != nil {
@@ -15,6 +18,7 @@ func Agent() error {
 	if err != nil {
 		return err
 	}
+	println(ffmpeg_executable)
 
 	// 2. Verify ffmpeg
 	ffmpeg_version, err := RunFfmpegVersion(ffmpeg_executable)
@@ -24,17 +28,27 @@ func Agent() error {
 	println(ffmpeg_version)
 
 	// 2. Download video
-	// video_workspace, err := os.MkdirTemp(os.TempDir(), "mear-video")
-	// if err != nil {
-	// 	return err
-	// }
-	// input_video, err := DownloadVideo(video_workspace, input)
-	// if err != nil {
-	// 	return err
-	// }
+	video_workspace, err := os.MkdirTemp(os.TempDir(), "mear-video")
+	if err != nil {
+		return err
+	}
+	input_video, err := DownloadVideo(video_workspace, input)
+	if err != nil {
+		return err
+	}
 
 	// 3. Convert video
+	output_ext, err := InferExt(output.ObjectKey)
+	if err != nil {
+		return err
+	}
+	output_video := path.Join(video_workspace, fmt.Sprintf("output.%s", output_ext))
+	ffmpeg_output, err := ConvertVideo(ffmpeg_executable, input_video, output_video)
+	if err != nil {
+		return err
+	}
+	println(ffmpeg_output)
 
 	// 4. Upload video
-	return nil
+	return UploadVideo(output_video, output)
 }
