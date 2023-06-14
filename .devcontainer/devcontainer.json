@@ -7,5 +7,15 @@
 		"bootstrap-minio-source": "./scripts/bootstrap-minio.sh minio-source src",
 		"bootstrap-minio-destination": "./scripts/bootstrap-minio.sh minio-destination dst",
 		"download-demo-video": "./scripts/download-demo-video.sh"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.go",
+				"GitHub.copilot",
+				"GitHub.copilot-chat",
+				"streetsidesoftware.code-spell-checker"
+			]
+		}
 	}
 }

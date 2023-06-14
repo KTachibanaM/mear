@@ -1,13 +1,13 @@
 package lib
 
 type S3Target struct {
-	EndpointUrl     string
-	Region          string
-	BucketName      string
-	ObjectKey       string
-	AccessKeyId     string
-	SecretAccessKey string
-	PathStyleUrl    bool
+	EndpointUrl     string `json:"endpointUrl"`
+	Region          string `json:"region"`
+	BucketName      string `json:"bucketName"`
+	ObjectKey       string `json:"objectName"`
+	AccessKeyId     string `json:"accessKeyId"`
+	SecretAccessKey string `json:"secretAccessKey"`
+	PathStyleUrl    bool   `json:"pathStyleUrl"`
 }
 
 func NewS3Target(EndpointUrl, Region, BucketName, ObjectKey, AccessKeyId, SecretAccessKey string, PathStyleUrl bool) *S3Target {
