@@ -1,0 +1,10 @@
+{
+	"name": "Mear",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "devcontainer",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"postCreateCommand": {
+		"bootstrap-minio-source": ".devcontainer/bootstrap-minio.sh minio-source src",
+		"bootstrap-minio-destination": ".devcontainer/bootstrap-minio.sh minio-destination dst"
+	}
+}
