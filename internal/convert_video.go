@@ -2,8 +2,9 @@ package internal
 
 import (
 	"bufio"
-	"log"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func ConvertVideo(ffmpeg_executable, input_video, output_video string, extra_args []string) error {
@@ -15,11 +16,15 @@ func ConvertVideo(ffmpeg_executable, input_video, output_video string, extra_arg
 	stderr, _ := cmd.StderrPipe()
 	cmd.Start()
 
+	context_log := log.WithFields(log.Fields{
+		"context": "ffmpeg",
+	})
+
 	scanner := bufio.NewScanner(stderr)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		m := scanner.Text()
-		log.Println(m)
+		context_log.Println(m)
 	}
 
 	return cmd.Wait()

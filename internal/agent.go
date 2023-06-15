@@ -2,9 +2,10 @@ package internal
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func Agent(agent_args *AgentArgs) error {
