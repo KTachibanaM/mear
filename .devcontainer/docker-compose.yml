@@ -53,9 +53,32 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+  minio-agent-binary:
+    image: minio/minio
+    restart: unless-stopped
+    command:
+      - server
+      - /data
+    volumes:
+      - minio-agent-binary-data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    networks:
+      - mear-network
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:9000/minio/health/live
+      interval: 30s
+      timeout: 20s
+      retries: 3
 volumes:
   minio-source-data:
   minio-destination-data:
+  minio-agent-binary-data:
 networks:
   mear-network:
     external: true

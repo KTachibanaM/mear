@@ -5,8 +5,9 @@
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"initializeCommand": "docker network inspect mear-network || docker network create mear-network",
 	"postCreateCommand": {
-		"bootstrap-minio-source": "./scripts/bootstrap-minio.sh minio-source src",
-		"bootstrap-minio-destination": "./scripts/bootstrap-minio.sh minio-destination dst",
+		"bootstrap-minio-source": "./scripts/bootstrap-minio.sh minio-source src false",
+		"bootstrap-minio-destination": "./scripts/bootstrap-minio.sh minio-destination dst false",
+		"bootstrap-minio-agent-binary": "./scripts/bootstrap-minio.sh minio-agent-binary bin true",
 		"download-demo-video": "./scripts/download-demo-video.sh"
 	},
 	"features": {

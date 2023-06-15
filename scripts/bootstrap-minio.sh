@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-if [[ $# -ne 2 ]] ; then
-  echo 'Usage: minio-bootstrap.sh <hostname> <bucket-name>'
+if [[ $# -ne 3 ]] ; then
+  echo 'Usage: minio-bootstrap.sh <hostname> <bucket-name> <public-bucket>'
   exit 1
 fi
 
@@ -14,6 +14,9 @@ for i in 1 2 3 4 5 6; do
   sleep 5
 done
 
-/usr/bin/mc alias set local http://$1:9000 minioadmin minioadmin;
-/usr/bin/mc mb --ignore-existing local/$2;
-/usr/bin/mc policy set public local/$2;
+/usr/bin/mc alias set local http://$1:9000 minioadmin minioadmin
+/usr/bin/mc mb --ignore-existing local/$2
+if [[ $3 == "true" ]] ; then
+  echo 'Making bucket public'
+  /usr/bin/mc anonymous set download local/$2
+fi
