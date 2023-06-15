@@ -1,12 +1,24 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 )
 
-func Agent(agent_args *AgentArgs) error {
+func Agent(agent_args_s3_target *S3Target) error {
+	// 0. Get agent args
+	agent_args_bytes, err := ReadS3Target(agent_args_s3_target)
+	if err != nil {
+		return err
+	}
+	var agent_args AgentArgs
+	err = json.Unmarshal(agent_args_bytes, &agent_args)
+	if err != nil {
+		return err
+	}
+
 	// 1. Download ffmpeg
 	ffmpeg_workspace, err := os.MkdirTemp(os.TempDir(), "mear-ffmpeg")
 	if err != nil {

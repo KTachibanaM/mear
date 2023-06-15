@@ -1,0 +1,1 @@
+{"endpointUrl": "http://minio-source:9000","region": "us-east-1","bucketName": "src","objectName": "demo-agent-args.json","accessKeyId": "minioadmin","secretAccessKey": "minioadmin","pathStyleUrl": true}

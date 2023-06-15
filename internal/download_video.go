@@ -7,8 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -31,18 +29,9 @@ func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 	defer f.Close()
 
 	// Create S3 session
-	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(s3_target.EndpointUrl),
-		Region:   aws.String(s3_target.Region),
-		Credentials: credentials.NewStaticCredentials(
-			s3_target.AccessKeyId,
-			s3_target.SecretAccessKey,
-			"",
-		),
-		S3ForcePathStyle: aws.Bool(s3_target.PathStyleUrl),
-	})
+	sess, err := CreateS3Session(s3_target)
 	if err != nil {
-		return "", fmt.Errorf("could not create S3 session for download video: %w", err)
+		return "", fmt.Errorf("could not create S3 session for downloading video: %w", err)
 	}
 
 	// Check if video exists

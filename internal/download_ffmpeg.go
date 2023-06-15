@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,9 +13,22 @@ import (
 // It accepts a workspace_dir where the downloading and extracting is going to happen,
 // and it returns the path to an ffmpeg executable
 func DownloadFfmpeg(workspace_dir string) (string, error) {
+	// Create custom transport with custom TLS config
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // Skip verification of server certificate
+			RootCAs:            nil,  // Use system default root CAs
+		},
+	}
+
+	// Create custom HTTP client with custom transport
+	client := &http.Client{
+		Transport: tr,
+	}
+
 	// Download the tar.xz file
 	url := "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("could not download ffmpeg: %w", err)
 	}

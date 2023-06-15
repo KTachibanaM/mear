@@ -3,7 +3,7 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "devcontainer",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-	"initializeCommand": "docker network create mear-network",
+	"initializeCommand": "docker network inspect mear-network || docker network create mear-network",
 	"postCreateCommand": {
 		"bootstrap-minio-source": "./scripts/bootstrap-minio.sh minio-source src",
 		"bootstrap-minio-destination": "./scripts/bootstrap-minio.sh minio-destination dst",
