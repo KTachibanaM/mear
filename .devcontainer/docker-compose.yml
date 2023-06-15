@@ -7,6 +7,8 @@ services:
     volumes:
       - ../..:/workspaces:cached
     command: sleep infinity
+    networks:
+      - mear-network
   minio-source:
     image: minio/minio
     restart: unless-stopped
@@ -18,6 +20,8 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+    networks:
+      - mear-network
     healthcheck:
       test:
         - CMD
@@ -38,6 +42,8 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+    networks:
+      - mear-network
     healthcheck:
       test:
         - CMD
@@ -50,3 +56,6 @@ services:
 volumes:
   minio-source-data:
   minio-destination-data:
+networks:
+  mear-network:
+    external: true

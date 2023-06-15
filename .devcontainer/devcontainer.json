@@ -3,10 +3,14 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "devcontainer",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"initializeCommand": "docker network create mear-network",
 	"postCreateCommand": {
 		"bootstrap-minio-source": "./scripts/bootstrap-minio.sh minio-source src",
 		"bootstrap-minio-destination": "./scripts/bootstrap-minio.sh minio-destination dst",
 		"download-demo-video": "./scripts/download-demo-video.sh"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
 	},
 	"customizations": {
 		"vscode": {
