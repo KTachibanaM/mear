@@ -1,0 +1,11 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+
+runcmd:
+  - curl -sL http://minio-agent-binary:9000/bin/mear-agent -o /root/mear-agent
+  - chmod +x /root/mear-agent
+  - /root/mear-agent REPLACE_ME
