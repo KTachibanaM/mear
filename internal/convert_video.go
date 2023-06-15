@@ -1,16 +1,26 @@
 package internal
 
-import "os/exec"
+import (
+	"bufio"
+	"log"
+	"os/exec"
+)
 
-func ConvertVideo(ffmpeg_executable, input_video, output_video string, extra_args []string) (string, error) {
+func ConvertVideo(ffmpeg_executable, input_video, output_video string, extra_args []string) error {
 	args := []string{"-i", input_video}
 	args = append(args, extra_args...)
 	args = append(args, output_video)
 
-	output, err := exec.Command(ffmpeg_executable, args...).CombinedOutput()
-	if err != nil {
-		println("failed to run ffmpeg, &w", err)
-		return "", err
+	cmd := exec.Command(ffmpeg_executable, args...)
+	stderr, _ := cmd.StderrPipe()
+	cmd.Start()
+
+	scanner := bufio.NewScanner(stderr)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		m := scanner.Text()
+		log.Println(m)
 	}
-	return string(output), nil
+
+	return cmd.Wait()
 }

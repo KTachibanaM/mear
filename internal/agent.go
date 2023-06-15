@@ -3,12 +3,16 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path"
 )
 
 func Agent(agent_args_s3_target *S3Target) error {
-	// 0. Get agent args
+	log.Println("agent started")
+
+	// 0. Download agent args
+	log.Println("downloading agent args...")
 	agent_args_bytes, err := ReadS3Target(agent_args_s3_target)
 	if err != nil {
 		return err
@@ -20,7 +24,8 @@ func Agent(agent_args_s3_target *S3Target) error {
 	}
 
 	// 1. Download ffmpeg
-	ffmpeg_workspace, err := os.MkdirTemp(os.TempDir(), "mear-ffmpeg")
+	log.Println("downloading ffmpeg...")
+	ffmpeg_workspace, err := os.MkdirTemp(os.TempDir(), "mear-ffmpeg-")
 	if err != nil {
 		return err
 	}
@@ -28,17 +33,18 @@ func Agent(agent_args_s3_target *S3Target) error {
 	if err != nil {
 		return err
 	}
-	println(ffmpeg_executable)
+	log.Printf("ffmpeg is located at %s\n", ffmpeg_executable)
 
 	// 2. Verify ffmpeg
-	ffmpeg_version, err := RunFfmpegVersion(ffmpeg_executable)
+	ffmpeg_version, err := GetFfmpegVersion(ffmpeg_executable)
 	if err != nil {
 		return err
 	}
-	println(ffmpeg_version)
+	log.Println(ffmpeg_version)
 
 	// 2. Download video
-	video_workspace, err := os.MkdirTemp(os.TempDir(), "mear-video")
+	log.Println("downloading video...")
+	video_workspace, err := os.MkdirTemp(os.TempDir(), "mear-video-")
 	if err != nil {
 		return err
 	}
@@ -48,23 +54,24 @@ func Agent(agent_args_s3_target *S3Target) error {
 	}
 
 	// 3. Convert video
+	log.Println("converting video...")
 	output_ext, err := InferExt(agent_args.S3Destination.ObjectKey)
 	if err != nil {
 		return err
 	}
 	output_video := path.Join(video_workspace, fmt.Sprintf("output.%s", output_ext))
-	ffmpeg_output, err := ConvertVideo(ffmpeg_executable, input_video, output_video, agent_args.ExtraFfmpegArgs)
+	err = ConvertVideo(ffmpeg_executable, input_video, output_video, agent_args.ExtraFfmpegArgs)
 	if err != nil {
 		return err
 	}
-	println(ffmpeg_output)
 
 	// 4. Upload video
+	log.Println("uploading video...")
 	err = UploadVideo(output_video, agent_args.S3Destination)
 	if err != nil {
 		return err
 	}
 
-	println("agent ran successfully")
+	log.Println("agent finished")
 	return nil
 }

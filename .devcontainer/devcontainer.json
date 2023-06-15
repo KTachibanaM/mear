@@ -17,10 +17,11 @@
 		"vscode": {
 			"extensions": [
 				"golang.go",
-				"GitHub.copilot",
+				"GitHub.copilot-nightly",
 				"GitHub.copilot-chat",
 				"streetsidesoftware.code-spell-checker"
 			]
+			
 		}
 	}
 }

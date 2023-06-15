@@ -1,5 +1,7 @@
 package main
 
+import "log"
+
 func main() {
-	println("Usage: mear TBD")
+	log.Fatalln("Usage: mear TBD")
 }
