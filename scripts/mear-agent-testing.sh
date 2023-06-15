@@ -11,8 +11,8 @@ docker exec -it mear-agent-testing apt update
 docker exec -it mear-agent-testing apt install -y curl
 docker exec -it mear-agent-testing curl -sL http://minio-agent-binary:9000/bin/mear-agent -o /root/mear-agent
 docker exec -it mear-agent-testing chmod +x /root/mear-agent
-AGENT_ARGS_S3_TARGET_BASE64=$(base64 -w 0 ./scripts/demo-agent-args-s3-target.json)
-docker exec -it mear-agent-testing /root/mear-agent $AGENT_ARGS_S3_TARGET_BASE64
+AGENT_ARGS_BASE64=$(base64 -w 0 ./scripts/demo-agent-args.json)
+docker exec -it mear-agent-testing /root/mear-agent $AGENT_ARGS_BASE64
 
 # Tear down
 docker rm -f mear-agent-testing

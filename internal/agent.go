@@ -1,27 +1,14 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path"
 )
 
-func Agent(agent_args_s3_target *S3Target) error {
+func Agent(agent_args *AgentArgs) error {
 	log.Println("agent started")
-
-	// 0. Download agent args
-	log.Println("downloading agent args...")
-	agent_args_bytes, err := ReadS3Target(agent_args_s3_target)
-	if err != nil {
-		return err
-	}
-	var agent_args AgentArgs
-	err = json.Unmarshal(agent_args_bytes, &agent_args)
-	if err != nil {
-		return err
-	}
 
 	// 1. Download ffmpeg
 	log.Println("downloading ffmpeg...")

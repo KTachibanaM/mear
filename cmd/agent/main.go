@@ -11,25 +11,25 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatalln("Usage: mear-agent <agent-args-s3-target-base64-encoded-json>")
+		log.Fatalln("Usage: mear-agent <agent-args-json-base64-encoded>")
 	}
 
-	// Base64 decode agent args S3 target JSON
+	// Base64 decode agent args
 	decoded, err := base64.StdEncoding.DecodeString(os.Args[1])
 	if err != nil {
-		log.Fatalln("failed to base64 decode agent args s3 target json: %w", err)
+		log.Fatalf("failed to base64 decode agent args: %v", err)
 	}
 
 	// Parse JSON
-	var agent_args_s3_target internal.S3Target
-	err = json.Unmarshal(decoded, &agent_args_s3_target)
+	var agent_args internal.AgentArgs
+	err = json.Unmarshal(decoded, &agent_args)
 	if err != nil {
-		log.Fatalf("failed to parse agent args s3 target: %w", err)
+		log.Fatalf("failed to parse agent args: %v", err)
 	}
 
 	// Run agent
-	err = internal.Agent(&agent_args_s3_target)
+	err = internal.Agent(&agent_args)
 	if err != nil {
-		log.Fatalf("failed to run agent: %w", err)
+		log.Fatalf("failed to run agent: %v", err)
 	}
 }
