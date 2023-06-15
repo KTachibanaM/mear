@@ -1,0 +1,21 @@
+{
+    "s3Source": {
+        "endpointUrl": "http://minio-source:9000",
+        "region": "us-east-1",
+        "bucketName": "src",
+        "objectName": "MakeMine1948_256kb.rm",
+        "accessKeyId": "minioadmin",
+        "secretAccessKey": "minioadmin",
+        "pathStyleUrl": true
+    },
+    "s3Destination": {
+        "endpointUrl": "http://minio-destination:9000",
+        "region": "us-east-1",
+        "bucketName": "dst",
+        "objectName": "output.mp4",
+        "accessKeyId": "minioadmin",
+        "secretAccessKey": "minioadmin",
+        "pathStyleUrl": true
+    },
+    "extraFfmpegArgs": []
+}

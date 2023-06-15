@@ -1,34 +1,34 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+
 	"github.com/KTachibanaM/mear/agent"
-	"github.com/KTachibanaM/mear/lib"
 )
 
 func main() {
-	err := agent.Agent(
-		agent.NewAgentArgs(
-			lib.NewS3Target(
-				"http://minio-source:9000",
-				"us-east-1",
-				"src",
-				"MakeMine1948_256kb.rm",
-				"minioadmin",
-				"minioadmin",
-				true,
-			),
-			lib.NewS3Target(
-				"http://minio-destination:9000",
-				"us-east-1",
-				"dst",
-				"output.mp4",
-				"minioadmin",
-				"minioadmin",
-				true,
-			),
-			[]string{},
-		),
-	)
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: mear <path-to-json-agent-args>")
+		os.Exit(1)
+	}
+
+	// Read JSON f
+	f, err := os.ReadFile(os.Args[1])
+	if err != nil {
+		panic(err)
+	}
+
+	// Parse JSON
+	var args agent.AgentArgs
+	err = json.Unmarshal(f, &args)
+	if err != nil {
+		panic(err)
+	}
+
+	// Run agent
+	err = agent.Agent(&args)
 	if err != nil {
 		panic(err)
 	}

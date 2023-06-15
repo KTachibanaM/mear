@@ -48,5 +48,11 @@ func Agent(agent_args *AgentArgs) error {
 	println(ffmpeg_output)
 
 	// 4. Upload video
-	return UploadVideo(output_video, agent_args.S3Destination)
+	err = UploadVideo(output_video, agent_args.S3Destination)
+	if err != nil {
+		return err
+	}
+
+	println("agent ran successfully")
+	return nil
 }
