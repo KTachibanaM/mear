@@ -1,17 +1,16 @@
-package agent
+package internal
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/KTachibanaM/mear/lib"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-func UploadVideo(video string, s3_target *lib.S3Target) error {
+func UploadVideo(video string, s3_target *S3Target) error {
 	// Open the video
 	f, err := os.Open(video)
 	if err != nil {

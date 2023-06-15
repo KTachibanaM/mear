@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/KTachibanaM/mear/agent"
+	"github.com/KTachibanaM/mear/internal"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: mear <path-to-json-agent-args>")
+		fmt.Println("Usage: mear-agent <path-to-json-agent-args>")
 		os.Exit(1)
 	}
 
@@ -21,14 +21,14 @@ func main() {
 	}
 
 	// Parse JSON
-	var args agent.AgentArgs
+	var args internal.AgentArgs
 	err = json.Unmarshal(f, &args)
 	if err != nil {
 		panic(err)
 	}
 
 	// Run agent
-	err = agent.Agent(&args)
+	err = internal.Agent(&args)
 	if err != nil {
 		panic(err)
 	}

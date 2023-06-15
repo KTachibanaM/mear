@@ -1,11 +1,10 @@
-package agent
+package internal
 
 import (
 	"fmt"
 	"os"
 	"path"
 
-	"github.com/KTachibanaM/mear/lib"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -16,7 +15,7 @@ import (
 
 // DownloadVideo downloads the video from S3 to the workspace_dir
 // and returns the path to the downloaded file
-func DownloadVideo(workspace_dir string, s3_target *lib.S3Target) (string, error) {
+func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 	// Figure out the file extension
 	ext, err := InferExt(s3_target.ObjectKey)
 	if err != nil {
