@@ -8,20 +8,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-func UploadVideo(video string, s3_target *S3Target) error {
-	// Open the video
-	f, err := os.Open(video)
+func UploadFile(file string, s3_target *S3Target) error {
+	// Open the file
+	f, err := os.Open(file)
 	if err != nil {
-		return fmt.Errorf("could not open the video: %w", err)
+		return fmt.Errorf("could not open the file: %w", err)
 	}
 
 	// Create S3 session
 	sess, err := CreateS3Session(s3_target)
 	if err != nil {
-		return fmt.Errorf("could not create S3 session for uploading video: %w", err)
+		return fmt.Errorf("could not create S3 session for uploading file: %w", err)
 	}
 
-	// Upload video
+	// Upload file
 	_, err = s3manager.NewUploader(sess).Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s3_target.BucketName),
 		Key:    aws.String(s3_target.ObjectKey),

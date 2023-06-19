@@ -3,28 +3,20 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path"
+	"time"
 
 	"github.com/KTachibanaM/mear/internal"
 	log "github.com/sirupsen/logrus"
 )
 
+var upload_log_interval = 10 * time.Second
+
 func main() {
-	// setup logger to log to both stdout and log file
 	log.SetFormatter(&log.JSONFormatter{})
-	agent_workspace, err := internal.GetWorkspaceDir("agent")
-	if err != nil {
-		log.Fatalf("failed to create agent workspace: %v", err)
-	}
-	log_file := path.Join(agent_workspace, "agent.log")
-	log_f, err := os.OpenFile(log_file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("failed to create log file: %v", err)
-	}
-	defer log_f.Close()
-	log.SetOutput(io.MultiWriter(os.Stdout, log_f))
 
 	if len(os.Args) < 2 {
 		log.Fatalln("Usage: mear-agent <agent-args-json-base64-encoded>")
@@ -43,9 +35,47 @@ func main() {
 		log.Fatalf("failed to parse agent args: %v", err)
 	}
 
+	// Setup logger to log to both stdout and log file
+	agent_workspace, err := internal.GetWorkspaceDir("agent")
+	if err != nil {
+		log.Fatalf("failed to create agent workspace: %v", err)
+	}
+	log_file := path.Join(agent_workspace, "agent.log")
+	log_f, err := os.OpenFile(log_file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("failed to create log file: %v", err)
+	}
+	defer log_f.Close()
+	log.SetOutput(io.MultiWriter(os.Stdout, log_f))
+
+	// Setup recurring job to upload log file to S3
+	upload_ticker := time.NewTicker(upload_log_interval)
+	go func() {
+		for range upload_ticker.C {
+			// TODO: should use fmt or log?
+			fmt.Println("uploading log to s3...")
+			err := internal.UploadFile(log_file, agent_args.S3Logs)
+			if err != nil {
+				// TODO: should use fmt or log?
+				fmt.Printf("failed to upload log to s3: %v", err)
+			}
+		}
+	}()
+
 	// Run agent
 	err = internal.Agent(&agent_args)
 	if err != nil {
-		log.Fatalf("failed to run agent: %v", err)
+		log.WithFields(log.Fields{
+			"result": false,
+		}).Printf("failed to run agent: %v", err)
+	} else {
+		log.WithFields(log.Fields{
+			"result": true,
+		}).Info("successfully ran agent")
+	}
+	err = internal.UploadFile(log_file, agent_args.S3Logs)
+	if err != nil {
+		// TODO: should use fmt or log?
+		fmt.Printf("failed to upload log to s3: %v", err)
 	}
 }

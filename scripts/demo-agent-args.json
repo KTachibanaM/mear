@@ -17,5 +17,14 @@
         "secretAccessKey": "minioadmin",
         "pathStyleUrl": true
     },
+    "s3Logs": {
+        "endpointUrl": "http://minio-destination:9000",
+        "region": "us-east-1",
+        "bucketName": "dst",
+        "objectName": "agent.log",
+        "accessKeyId": "minioadmin",
+        "secretAccessKey": "minioadmin",
+        "pathStyleUrl": true
+    },
     "extraFfmpegArgs": []
 }
