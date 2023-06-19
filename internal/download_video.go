@@ -1,14 +1,17 @@
 package internal
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"path"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // DownloadVideo downloads the video from S3 to the workspace_dir
@@ -47,15 +50,39 @@ func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 		}
 	}
 
-	// Download video
-	_, err = s3manager.NewDownloader(sess).Download(
-		f, &s3.GetObjectInput{
+	// Create request for downloading video
+	ctx := context.Background()
+	req, err := s3.New(sess).GetObjectWithContext(
+		ctx,
+		&s3.GetObjectInput{
 			Bucket: aws.String(s3_target.BucketName),
 			Key:    aws.String(s3_target.ObjectKey),
 		},
 	)
 	if err != nil {
-		return "", fmt.Errorf("could not download video: %w", err)
+		return "", fmt.Errorf("could not create request for downloading video: %w", err)
+	}
+
+	// Download the video
+	total_size := *req.ContentLength
+	reader := io.TeeReader(req.Body, f)
+	downloaded_size := int64(0)
+	prev_progress := float64(0)
+	buf := make([]byte, 1024)
+	for {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				return "", fmt.Errorf("failed to read data: %v", err)
+			}
+			break
+		}
+		downloaded_size += int64(n)
+		cur_progress := float64(downloaded_size) / float64(total_size) * 100
+		if cur_progress-prev_progress >= 10 {
+			log.Printf("downloaded %.2f%% of the object", cur_progress)
+			prev_progress = cur_progress
+		}
 	}
 
 	return downloaded, nil

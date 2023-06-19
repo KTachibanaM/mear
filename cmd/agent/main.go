@@ -57,7 +57,7 @@ func main() {
 			err := internal.UploadFile(log_file, agent_args.S3Logs)
 			if err != nil {
 				// TODO: should use fmt or log?
-				fmt.Printf("failed to upload log to s3: %v", err)
+				fmt.Printf("failed to upload log to s3: %v\n", err)
 			}
 		}
 	}()
@@ -76,6 +76,6 @@ func main() {
 	err = internal.UploadFile(log_file, agent_args.S3Logs)
 	if err != nil {
 		// TODO: should use fmt or log?
-		fmt.Printf("failed to upload log to s3: %v", err)
+		fmt.Printf("failed to upload log to s3: %v\n", err)
 	}
 }
