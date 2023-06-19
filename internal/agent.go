@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"os"
 	"path"
 
 	log "github.com/sirupsen/logrus"
@@ -13,7 +12,7 @@ func Agent(agent_args *AgentArgs) error {
 
 	// 1. Download ffmpeg
 	log.Println("downloading ffmpeg...")
-	ffmpeg_workspace, err := os.MkdirTemp(os.TempDir(), "mear-ffmpeg-")
+	ffmpeg_workspace, err := GetWorkspaceDir("ffmpeg")
 	if err != nil {
 		return err
 	}
@@ -21,7 +20,6 @@ func Agent(agent_args *AgentArgs) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("ffmpeg is located at %s\n", ffmpeg_executable)
 
 	// 2. Verify ffmpeg
 	ffmpeg_version, err := GetFfmpegVersion(ffmpeg_executable)
@@ -32,7 +30,7 @@ func Agent(agent_args *AgentArgs) error {
 
 	// 2. Download video
 	log.Println("downloading video...")
-	video_workspace, err := os.MkdirTemp(os.TempDir(), "mear-video-")
+	video_workspace, err := GetWorkspaceDir("video")
 	if err != nil {
 		return err
 	}
