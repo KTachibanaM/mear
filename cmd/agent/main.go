@@ -52,8 +52,9 @@ func main() {
 	upload_ticker := time.NewTicker(upload_log_interval)
 	go func() {
 		for range upload_ticker.C {
-			// TODO: should use fmt or log?
-			fmt.Println("uploading log to s3...")
+			log.WithFields(log.Fields{
+				"heartbeat": true,
+			}).Info("heartbeat")
 			err := internal.UploadFile(log_file, agent_args.S3Logs)
 			if err != nil {
 				// TODO: should use fmt or log?
@@ -76,6 +77,6 @@ func main() {
 	err = internal.UploadFile(log_file, agent_args.S3Logs)
 	if err != nil {
 		// TODO: should use fmt or log?
-		fmt.Printf("failed to upload log to s3: %v\n", err)
+		fmt.Printf("failed to upload final log to s3: %v\n", err)
 	}
 }
