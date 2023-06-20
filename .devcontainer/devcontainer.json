@@ -5,10 +5,9 @@
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"initializeCommand": "docker network inspect mear-network || docker network create mear-network",
 	"postCreateCommand": {
-		"bootstrap-minio-source": "./scripts/bootstrap-minio.sh minio-source src false",
-		"bootstrap-minio-destination": "./scripts/bootstrap-minio.sh minio-destination dst false",
-		"bootstrap-minio-agent-binary": "./scripts/bootstrap-minio.sh minio-agent-binary bin true",
-		"download-demo-video": "./scripts/download-demo-video.sh"
+		"bootstrap-minio-source": "./.devcontainer/bootstrap-minio.sh minio-source src false",
+		"bootstrap-minio-destination": "./.devcontainer/bootstrap-minio.sh minio-destination dst false",
+		"bootstrap-minio-agent-binary": "./.devcontainer/bootstrap-minio.sh minio-agent-binary bin true"
 	},
 	"features": {
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
@@ -17,6 +16,7 @@
 		"vscode": {
 			"extensions": [
 				"golang.go",
+				"ms-vscode.makefile-tools",
 				"GitHub.copilot-nightly",
 				"GitHub.copilot-chat",
 				"streetsidesoftware.code-spell-checker"
