@@ -1,4 +1,4 @@
-package internal
+package agent
 
 import (
 	"crypto/tls"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 
+	mear_io "github.com/KTachibanaM/mear/internal/io"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,7 +46,7 @@ func DownloadFfmpeg(workspace_dir string) (string, error) {
 	// Get tar.gz file size
 	var in io.Reader
 	if resp.ContentLength != -1 {
-		progress_writer := NewProgressWriter(
+		progress_writer := mear_io.NewProgressWriter(
 			uint64(resp.ContentLength),
 			func(progress float64) {
 				log.Printf("downloaded %.2f%% of ffmpeg", progress)

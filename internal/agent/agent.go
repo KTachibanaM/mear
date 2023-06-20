@@ -1,9 +1,11 @@
-package internal
+package agent
 
 import (
 	"fmt"
 	"path"
 
+	"github.com/KTachibanaM/mear/internal/s3"
+	"github.com/KTachibanaM/mear/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,14 +36,14 @@ func Agent(agent_args *AgentArgs) error {
 	if err != nil {
 		return err
 	}
-	input_video, err := DownloadVideo(video_workspace, agent_args.S3Source)
+	input_video, err := s3.DownloadVideo(video_workspace, agent_args.S3Source)
 	if err != nil {
 		return err
 	}
 
 	// 3. Convert video
 	log.Println("converting video...")
-	output_ext, err := InferExt(agent_args.S3Destination.ObjectKey)
+	output_ext, err := utils.InferExt(agent_args.S3Destination.ObjectKey)
 	if err != nil {
 		return err
 	}
@@ -53,7 +55,7 @@ func Agent(agent_args *AgentArgs) error {
 
 	// 4. Upload video
 	log.Println("uploading video...")
-	err = UploadFile(output_video, agent_args.S3Destination, true)
+	err = s3.UploadFile(output_video, agent_args.S3Destination, true)
 	if err != nil {
 		return err
 	}

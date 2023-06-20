@@ -1,4 +1,4 @@
-package internal
+package s3
 
 import (
 	"fmt"
@@ -8,6 +8,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	mear_io "github.com/KTachibanaM/mear/internal/io"
+
+	"github.com/KTachibanaM/mear/internal/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -17,7 +20,7 @@ import (
 // and returns the path to the downloaded file
 func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 	// Figure out the file extension
-	ext, err := InferExt(s3_target.ObjectKey)
+	ext, err := utils.InferExt(s3_target.ObjectKey)
 	if err != nil {
 		return "", fmt.Errorf("could not infer the extension from the object key %s: %w", s3_target.ObjectKey, err)
 	}
@@ -61,7 +64,7 @@ func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 	}
 
 	// Download the video
-	progress_writer := NewProgressWriter(
+	progress_writer := mear_io.NewProgressWriter(
 		uint64(*head_out.ContentLength),
 		func(progress float64) {
 			log.Printf("downloaded %.2f%% of the video", progress)

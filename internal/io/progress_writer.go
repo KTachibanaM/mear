@@ -1,4 +1,4 @@
-package internal
+package io
 
 // ProgressWriter counts the number of bytes written to it
 // and reports progress on every 10% bytes written using the given callback

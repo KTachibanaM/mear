@@ -9,7 +9,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/KTachibanaM/mear/internal"
+	"github.com/KTachibanaM/mear/internal/agent"
+	"github.com/KTachibanaM/mear/internal/s3"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,14 +30,14 @@ func main() {
 	}
 
 	// Parse JSON
-	var agent_args internal.AgentArgs
+	var agent_args agent.AgentArgs
 	err = json.Unmarshal(decoded, &agent_args)
 	if err != nil {
 		log.Fatalf("failed to parse agent args: %v", err)
 	}
 
 	// Setup logger to log to both stdout and log file
-	agent_workspace, err := internal.GetWorkspaceDir("agent")
+	agent_workspace, err := agent.GetWorkspaceDir("agent")
 	if err != nil {
 		log.Fatalf("failed to create agent workspace: %v", err)
 	}
@@ -55,7 +56,7 @@ func main() {
 			log.WithFields(log.Fields{
 				"heartbeat": true,
 			}).Info("heartbeat")
-			err := internal.UploadFile(log_file, agent_args.S3Logs, false)
+			err := s3.UploadFile(log_file, agent_args.S3Logs, false)
 			if err != nil {
 				// TODO: should use fmt or log?
 				fmt.Printf("failed to upload log to s3: %v\n", err)
@@ -64,7 +65,7 @@ func main() {
 	}()
 
 	// Run agent
-	err = internal.Agent(&agent_args)
+	err = agent.Agent(&agent_args)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"result": false,
@@ -74,7 +75,7 @@ func main() {
 			"result": true,
 		}).Info("successfully ran agent")
 	}
-	err = internal.UploadFile(log_file, agent_args.S3Logs, false)
+	err = s3.UploadFile(log_file, agent_args.S3Logs, false)
 	if err != nil {
 		// TODO: should use fmt or log?
 		fmt.Printf("failed to upload final log to s3: %v\n", err)

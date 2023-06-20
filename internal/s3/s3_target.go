@@ -1,4 +1,4 @@
-package internal
+package s3
 
 type S3Target struct {
 	EndpointUrl     string `json:"endpointUrl"`

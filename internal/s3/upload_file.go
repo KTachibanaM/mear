@@ -1,10 +1,11 @@
-package internal
+package s3
 
 import (
 	"fmt"
 	"io"
 	"os"
 
+	mear_io "github.com/KTachibanaM/mear/internal/io"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	log "github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ func UploadFile(file string, s3_target *S3Target, print_progress bool) error {
 	}
 
 	// Upload file
-	progress_writer := NewProgressWriter(
+	progress_writer := mear_io.NewProgressWriter(
 		uint64(f_stat.Size()),
 		func(progress float64) {
 			if print_progress {
