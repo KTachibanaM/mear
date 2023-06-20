@@ -9,14 +9,13 @@ import (
 	"time"
 
 	"github.com/KTachibanaM/mear/internal/agent"
+	"github.com/KTachibanaM/mear/internal/bucket"
 	"github.com/KTachibanaM/mear/internal/s3"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	"github.com/aws/aws-sdk-go/aws"
-	aws_s3 "github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,8 +27,8 @@ var DockerExecCheckMaxIntervals = 60
 var DockerExecCheckInterval = 2 * time.Second
 
 // 2 hours
-var TailingMaxIntervals = 2880
-var TailingInterval = 5 * time.Second
+var TailingMaxIntervals = 1440
+var TailingInterval = 10 * time.Second
 
 func Host() error {
 	// 1. Get agent binary url
@@ -38,33 +37,12 @@ func Host() error {
 
 	// 2. Provision buckets
 	log.Println("provisioning buckets...")
-	s3_source := s3.NewS3Target(
-		"http://minio-source:9000",
-		"us-east-1",
-		"src",
-		"MakeMine1948_256kb.rm",
-		"minioadmin",
-		"minioadmin",
-		true,
-	)
-	s3_destination := s3.NewS3Target(
-		"http://minio-destination:9000",
-		"us-east-1",
-		"dst",
-		"output.mp4",
-		"minioadmin",
-		"minioadmin",
-		true,
-	)
-	s3_logs := s3.NewS3Target(
-		"http://minio-destination:9000",
-		"us-east-1",
-		"dst",
-		"agent.log",
-		"minioadmin",
-		"minioadmin",
-		true,
-	)
+	bucket_provisioner := bucket.NewDevcontainerBucketProvisioner()
+	s3_source, s3_destination, s3_logs, err := bucket_provisioner.Provision()
+
+	if err != nil {
+		log.Fatalf("failed to provision buckets: %v", err)
+	}
 
 	// 3. Gather agent args
 	log.Println("gathering agent args...")
@@ -191,6 +169,7 @@ func Host() error {
 								log.Errorln("agent run failed")
 							}
 							terminate = true
+							break
 						}
 					}
 				}
@@ -204,18 +183,9 @@ func Host() error {
 	}
 
 	// 6. Deprovision buckets
-	s3_sess, err := s3.CreateS3Session(s3_logs)
+	err = bucket_provisioner.Teardown()
 	if err != nil {
-		return err
-	}
-	_, err = aws_s3.New(s3_sess).DeleteObject(
-		&aws_s3.DeleteObjectInput{
-			Bucket: aws.String(s3_logs.BucketName),
-			Key:    aws.String(s3_logs.ObjectKey),
-		},
-	)
-	if err != nil {
-		return err
+		log.Fatalf("failed to teardown buckets: %v", err)
 	}
 
 	// 7. Deprovision engine
