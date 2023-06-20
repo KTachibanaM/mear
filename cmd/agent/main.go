@@ -55,7 +55,7 @@ func main() {
 			log.WithFields(log.Fields{
 				"heartbeat": true,
 			}).Info("heartbeat")
-			err := internal.UploadFile(log_file, agent_args.S3Logs)
+			err := internal.UploadFile(log_file, agent_args.S3Logs, false)
 			if err != nil {
 				// TODO: should use fmt or log?
 				fmt.Printf("failed to upload log to s3: %v\n", err)
@@ -74,7 +74,7 @@ func main() {
 			"result": true,
 		}).Info("successfully ran agent")
 	}
-	err = internal.UploadFile(log_file, agent_args.S3Logs)
+	err = internal.UploadFile(log_file, agent_args.S3Logs, false)
 	if err != nil {
 		// TODO: should use fmt or log?
 		fmt.Printf("failed to upload final log to s3: %v\n", err)

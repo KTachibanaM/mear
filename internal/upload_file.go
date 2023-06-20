@@ -2,17 +2,26 @@ package internal
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	log "github.com/sirupsen/logrus"
 )
 
-func UploadFile(file string, s3_target *S3Target) error {
+func UploadFile(file string, s3_target *S3Target, print_progress bool) error {
 	// Open the file
 	f, err := os.Open(file)
 	if err != nil {
 		return fmt.Errorf("could not open the file: %w", err)
+	}
+	defer f.Close()
+
+	// Get the file stat
+	f_stat, err := f.Stat()
+	if err != nil {
+		return fmt.Errorf("could not get the file stat: %w", err)
 	}
 
 	// Create S3 session
@@ -22,11 +31,22 @@ func UploadFile(file string, s3_target *S3Target) error {
 	}
 
 	// Upload file
+	progress_writer := NewProgressWriter(
+		uint64(f_stat.Size()),
+		func(progress float64) {
+			if print_progress {
+				log.Printf("uploaded %.2f%% of the file", progress)
+			}
+		},
+	)
 	_, err = s3manager.NewUploader(sess).Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s3_target.BucketName),
 		Key:    aws.String(s3_target.ObjectKey),
-		Body:   f,
+		Body:   io.TeeReader(f, progress_writer),
 	})
+	if err != nil {
+		return fmt.Errorf("could not upload file: %w", err)
+	}
 
-	return err
+	return nil
 }

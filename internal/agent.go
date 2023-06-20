@@ -53,7 +53,7 @@ func Agent(agent_args *AgentArgs) error {
 
 	// 4. Upload video
 	log.Println("uploading video...")
-	err = UploadFile(output_video, agent_args.S3Destination)
+	err = UploadFile(output_video, agent_args.S3Destination, true)
 	if err != nil {
 		return err
 	}

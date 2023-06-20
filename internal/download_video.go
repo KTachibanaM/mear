@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -51,9 +50,7 @@ func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 	}
 
 	// Create request for downloading video
-	ctx := context.Background()
-	req, err := s3.New(sess).GetObjectWithContext(
-		ctx,
+	req, err := s3.New(sess).GetObject(
 		&s3.GetObjectInput{
 			Bucket: aws.String(s3_target.BucketName),
 			Key:    aws.String(s3_target.ObjectKey),
