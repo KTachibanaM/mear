@@ -7,21 +7,21 @@ import (
 	"net/http"
 	"os"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // DownloadFfmpeg downloads the latest version of ffmpeg for linux amd64
 // It accepts a workspace_dir where the downloading and extracting is going to happen,
 // and it returns the path to an ffmpeg executable
 func DownloadFfmpeg(workspace_dir string) (string, error) {
-	// Create custom transport with custom TLS config
+	// https cert for ffmpeg website might be invalid?
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true, // Skip verification of server certificate
 			RootCAs:            nil,  // Use system default root CAs
 		},
 	}
-
-	// Create custom HTTP client with custom transport
 	client := &http.Client{
 		Transport: tr,
 	}
@@ -42,8 +42,23 @@ func DownloadFfmpeg(workspace_dir string) (string, error) {
 	}
 	defer out.Close()
 
+	// Get tar.gz file size
+	var in io.Reader
+	if resp.ContentLength != -1 {
+		progress_writer := NewProgressWriter(
+			uint64(resp.ContentLength),
+			func(progress float64) {
+				log.Printf("downloaded %.2f%% of ffmpeg", progress)
+			},
+		)
+		in = io.TeeReader(resp.Body, progress_writer)
+	} else {
+		log.Warn("could not get ffmpeg file size, progress will not be shown")
+		in = resp.Body
+	}
+
 	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
+	_, err = io.Copy(out, in)
 	if err != nil {
 		return "", fmt.Errorf("could not write ffmpeg.tar.xz file: %w", err)
 	}
