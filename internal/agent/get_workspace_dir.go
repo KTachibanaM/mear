@@ -13,7 +13,7 @@ func GetWorkspaceDir(workspace_name string) (string, error) {
 		return "", err
 	}
 
-	workspace_dir := path.Join(currentUser.HomeDir, ".mear", workspace_name)
+	workspace_dir := path.Join(currentUser.HomeDir, "mear", workspace_name)
 	if err := os.MkdirAll(workspace_dir, 0755); err != nil {
 		return "", err
 	}
