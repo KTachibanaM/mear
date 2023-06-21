@@ -3,6 +3,8 @@ package bucket
 import (
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/KTachibanaM/mear/internal/do"
 	"github.com/KTachibanaM/mear/internal/s3"
 	aws_s3 "github.com/aws/aws-sdk-go/service/s3"
@@ -47,6 +49,7 @@ func (p *DigitalOceanBucketProvisioner) Provision() (*s3.S3Target, error) {
 		return nil, fmt.Errorf("could not create S3 session for bucket provisioning: %w", err)
 	}
 
+	log.Println("creating bucket on DO...")
 	_, err = aws_s3.New(sess).CreateBucket(
 		&aws_s3.CreateBucketInput{
 			Bucket: aws.String(s3_target.BucketName),
@@ -75,6 +78,7 @@ func (p *DigitalOceanBucketProvisioner) Teardown() error {
 		return fmt.Errorf("could not create S3 session for bucket teardown: %w", err)
 	}
 
+	log.Println("deleting bucket on DO...")
 	_, err = aws_s3.New(sess).DeleteBucket(
 		&aws_s3.DeleteBucketInput{
 			Bucket: aws.String(s3_target.BucketName),

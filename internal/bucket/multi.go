@@ -22,7 +22,7 @@ func (p *MultiBucketProvisioner) Provision() ([]*s3.S3Target, error) {
 	var errors error
 	for i, provisioner := range p.provisioners {
 		s3_target, err := provisioner.Provision()
-		p.provisioned_states[i] = err != nil
+		p.provisioned_states[i] = err == nil
 		if err != nil {
 			errors = multierror.Append(errors, err)
 		} else {

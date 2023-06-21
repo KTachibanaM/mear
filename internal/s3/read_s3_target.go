@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,6 +30,9 @@ func ReadS3Target(s3_target *S3Target) ([]byte, error) {
 		Key:    aws.String(s3_target.ObjectKey),
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "NoSuchKey") {
+			return nil, fmt.Errorf("object doesn't exist yet")
+		}
 		return nil, fmt.Errorf("could not get object for reading: %w", err)
 	}
 

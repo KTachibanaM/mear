@@ -17,6 +17,8 @@ import (
 )
 
 func Host() error {
+	log.SetReportCaller(true)
+
 	err := godotenv.Load()
 	if err != nil {
 		return fmt.Errorf("could not load .env file: %w", err)
@@ -106,6 +108,7 @@ func Host() error {
 	}
 
 	// 7. Deprovision buckets
+	log.Println("deprovisioning buckets...")
 	err = bucket_provisioner.Teardown()
 	if err != nil {
 		return fmt.Errorf("failed to teardown buckets: %v", err)
