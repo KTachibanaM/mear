@@ -4,25 +4,51 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/KTachibanaM/mear/internal/agent"
 	"github.com/KTachibanaM/mear/internal/bucket"
+	"github.com/KTachibanaM/mear/internal/do"
 	"github.com/KTachibanaM/mear/internal/engine"
 	"github.com/KTachibanaM/mear/internal/utils"
+	"github.com/joho/godotenv"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func Host() error {
+	err := godotenv.Load()
+	if err != nil {
+		return fmt.Errorf("could not load .env file: %w", err)
+	}
+
 	// 1. Get agent binary url
 	log.Println("getting agent binary url...")
 	agent_binary_url := "http://minio-agent-binary:9000/bin/mear-agent"
 
 	// 2. Provision buckets
+	logs_bucket_suffix, err := do.RandomBucketSuffix(10)
+	if err != nil {
+		return fmt.Errorf("could not generate random string for logs bucket name: %w", err)
+	}
+	access_key_id, exists := os.LookupEnv("AWS_ACCESS_KEY_ID")
+	if !exists {
+		return fmt.Errorf("AWS_ACCESS_KEY_ID is not set")
+	}
+	secret_access_key, exists := os.LookupEnv("AWS_SECRET_ACCESS_KEY")
+	if !exists {
+		return fmt.Errorf("AWS_SECRET_ACCESS_KEY is not set")
+	}
 	log.Println("provisioning buckets...")
-	source_bucket_provisioner := bucket.NewNoOpBucketProvisioner(bucket.DevContainerSource, false)
-	destination_bucket_provisioner := bucket.NewNoOpBucketProvisioner(bucket.DevContainerDestination, true)
-	logs_bucket_provisioner := bucket.NewNoOpBucketProvisioner(bucket.DevContainerLogs, true)
+	source_bucket_provisioner := bucket.NewNoOpBucketProvisioner(DevContainerSource, false)
+	destination_bucket_provisioner := bucket.NewNoOpBucketProvisioner(DevContainerDestination, true)
+	logs_bucket_provisioner := bucket.NewDigitalOceanBucketProvisioner(
+		do.NewStaticDigitalOceanDataCenterGuesser("nyc3"),
+		"mear-logs-"+logs_bucket_suffix,
+		"agent.log",
+		access_key_id,
+		secret_access_key,
+	)
 	bucket_provisioner := bucket.NewMultiBucketProvisioner(
 		source_bucket_provisioner,
 		destination_bucket_provisioner,

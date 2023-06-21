@@ -13,7 +13,7 @@ type S3Target struct {
 }
 
 func (t *S3Target) String() string {
-	return fmt.Sprintf("s3://%v/%v?endpoint=%v&region=%v", t.BucketName, t.ObjectKey, t.EndpointUrl, t.Region)
+	return fmt.Sprintf("s3://%v/%v (endpoint=%v,region=%v)", t.BucketName, t.ObjectKey, t.EndpointUrl, t.Region)
 }
 
 func NewS3Target(EndpointUrl, Region, BucketName, ObjectKey, AccessKeyId, SecretAccessKey string, PathStyleUrl bool) *S3Target {

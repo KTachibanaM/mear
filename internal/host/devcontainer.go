@@ -1,4 +1,4 @@
-package bucket
+package host
 
 import "github.com/KTachibanaM/mear/internal/s3"
 
