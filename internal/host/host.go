@@ -1,28 +1,16 @@
 package host
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/KTachibanaM/mear/internal/agent"
 	"github.com/KTachibanaM/mear/internal/bucket"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/KTachibanaM/mear/internal/engine"
 
 	log "github.com/sirupsen/logrus"
 )
-
-var DockerContainerName = "mear-agent-testing"
-var DockerNetworkName = "mear-network"
-
-// 2 minutes
-var DockerExecCheckMaxIntervals = 60
-var DockerExecCheckInterval = 2 * time.Second
 
 func Host() error {
 	// 1. Get agent binary url
@@ -33,9 +21,8 @@ func Host() error {
 	log.Println("provisioning buckets...")
 	bucket_provisioner := bucket.NewDevcontainerBucketProvisioner()
 	s3_source, s3_destination, s3_logs, err := bucket_provisioner.Provision()
-
 	if err != nil {
-		log.Fatalf("failed to provision buckets: %v", err)
+		return err
 	}
 
 	// 3. Gather agent args
@@ -54,72 +41,14 @@ func Host() error {
 
 	// 4. Provision engine
 	log.Println("provisioning engine...")
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	engine_provisioner := engine.NewDevcontainerEngineProvisioner()
+	engine_id, err := engine_provisioner.Provision(agent_binary_url, encoded)
 	if err != nil {
-		return err
-	}
-	defer cli.Close()
-
-	ctx := context.Background()
-	println("create")
-	container_create_resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: "debian:bullseye",
-		Cmd:   []string{"sleep", "infinity"},
-	}, nil, nil, &v1.Platform{
-		Architecture: "amd64",
-	}, DockerContainerName)
-	if err != nil {
-		return err
-	}
-	println("start")
-	err = cli.ContainerStart(ctx, container_create_resp.ID, types.ContainerStartOptions{})
-	if err != nil {
-		return err
-	}
-	println("nw inspect")
-	network_inspect_resp, err := cli.NetworkInspect(ctx, DockerNetworkName, types.NetworkInspectOptions{})
-	if err != nil {
-		return err
-	}
-	println("nw connect")
-	err = cli.NetworkConnect(ctx, network_inspect_resp.ID, container_create_resp.ID, nil)
-	if err != nil {
-		return err
-	}
-	commands := []string{
-		"apt update",
-		"apt install -y curl",
-		"curl -sL " + agent_binary_url + " -o /root/mear-agent",
-		"chmod +x /root/mear-agent",
-		"/root/mear-agent " + encoded,
-	}
-	for i := 0; i < len(commands); i++ {
-		command := commands[i]
-		fmt.Printf("running %v\n", command)
-		exec_create_resp, err := cli.ContainerExecCreate(context.Background(), container_create_resp.ID, types.ExecConfig{
-			Cmd: []string{"sh", "-c", command},
-		})
-		if err != nil {
-			return err
+		teardown_err := engine_provisioner.Teardown(engine_id)
+		if teardown_err != nil {
+			return fmt.Errorf("failed to teardown engine: %v while provisioning engine: %v", teardown_err, err)
 		}
-
-		err = cli.ContainerExecStart(context.Background(), exec_create_resp.ID, types.ExecStartCheck{})
-		if err != nil {
-			return err
-		}
-		if i != len(commands)-1 {
-			for j := 0; j < DockerExecCheckMaxIntervals; j++ {
-				execInspectResp, err := cli.ContainerExecInspect(ctx, exec_create_resp.ID)
-				if err != nil {
-					return err
-				}
-
-				if !execInspectResp.Running {
-					break
-				}
-				time.Sleep(DockerExecCheckInterval)
-			}
-		}
+		return fmt.Errorf("failed to provision engine: %v but engine was torn down", err)
 	}
 
 	// 5. Tail for logs and result
@@ -134,18 +63,14 @@ func Host() error {
 	// 6. Deprovision buckets
 	err = bucket_provisioner.Teardown()
 	if err != nil {
-		log.Fatalf("failed to teardown buckets: %v", err)
+		return fmt.Errorf("failed to teardown buckets: %v", err)
 	}
 
 	// 7. Deprovision engine
 	log.Println("deprovisioning engine...")
-	err = cli.ContainerStop(ctx, container_create_resp.ID, container.StopOptions{})
+	err = engine_provisioner.Teardown(engine_id)
 	if err != nil {
-		return err
-	}
-	err = cli.ContainerRemove(ctx, container_create_resp.ID, types.ContainerRemoveOptions{})
-	if err != nil {
-		return err
+		return fmt.Errorf("failed to teardown engine: %v", err)
 	}
 
 	return nil

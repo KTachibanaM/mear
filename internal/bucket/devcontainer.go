@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 
 	aws_s3 "github.com/aws/aws-sdk-go/service/s3"
+	log "github.com/sirupsen/logrus"
 )
 
 var source = s3.NewS3Target(
@@ -63,9 +64,11 @@ func NewDevcontainerBucketProvisioner() *DevcontainerBucketProvisioner {
 
 func (p DevcontainerBucketProvisioner) Provision() (*s3.S3Target, *s3.S3Target, *s3.S3Target, error) {
 	// Only delete destination objects before provisioning so that they can be retained for debugging after Teardown
+	log.Println("deleting destination s3 target...")
 	if err := deleteS3Target(destination); err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to delete destination s3 target: %v", err)
 	}
+	log.Println("deleting logs s3 target...")
 	if err := deleteS3Target(logs); err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to delete logs s3 target: %v", err)
 	}

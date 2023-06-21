@@ -8,6 +8,6 @@ import (
 func main() {
 	err := host.Host()
 	if err != nil {
-		log.Fatalf("failed to run host: %v", err)
+		log.Fatalln(err)
 	}
 }
