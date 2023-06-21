@@ -22,45 +22,45 @@ func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 	// Figure out the file extension
 	ext, err := utils.InferExt(s3_target.ObjectKey)
 	if err != nil {
-		return "", fmt.Errorf("could not infer the extension from the object key %s: %w", s3_target.ObjectKey, err)
+		return "", fmt.Errorf("could not infer the extension from the object key %s: %v", s3_target.ObjectKey, err)
 	}
 
 	// Create the downloaded file
 	downloaded := path.Join(workspace_dir, fmt.Sprintf("input.%s", ext))
 	f, err := os.Create(downloaded)
 	if err != nil {
-		return "", fmt.Errorf("could not create the downloaded file: %w", err)
+		return "", fmt.Errorf("could not create the downloaded file: %v", err)
 	}
 	defer f.Close()
 
 	// Create S3 session
-	sess, err := CreateS3Session(s3_target)
+	sess, err := CreateS3Session(s3_target.S3Bucket.S3Session)
 	if err != nil {
-		return "", fmt.Errorf("could not create S3 session for downloading video: %w", err)
+		return "", fmt.Errorf("could not create S3 session for downloading video: %v", err)
 	}
 
 	// Check if video exists
 	head_out, err := s3.New(sess).HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(s3_target.BucketName),
+		Bucket: aws.String(s3_target.S3Bucket.BucketName),
 		Key:    aws.String(s3_target.ObjectKey),
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFound" {
-			return "", fmt.Errorf("video does not exist: %w", err)
+			return "", fmt.Errorf("video does not exist: %v", err)
 		} else {
-			return "", fmt.Errorf("could not check if video exists: %w", err)
+			return "", fmt.Errorf("could not check if video exists: %v", err)
 		}
 	}
 
 	// Create request for downloading video
 	req, err := s3.New(sess).GetObject(
 		&s3.GetObjectInput{
-			Bucket: aws.String(s3_target.BucketName),
+			Bucket: aws.String(s3_target.S3Bucket.BucketName),
 			Key:    aws.String(s3_target.ObjectKey),
 		},
 	)
 	if err != nil {
-		return "", fmt.Errorf("could not create request for downloading video: %w", err)
+		return "", fmt.Errorf("could not create request for downloading video: %v", err)
 	}
 
 	// Download the video
@@ -72,7 +72,7 @@ func DownloadVideo(workspace_dir string, s3_target *S3Target) (string, error) {
 	)
 	_, err = io.Copy(f, io.TeeReader(req.Body, progress_writer))
 	if err != nil {
-		return "", fmt.Errorf("could not download video: %w", err)
+		return "", fmt.Errorf("could not download video: %v", err)
 	}
 
 	return downloaded, nil

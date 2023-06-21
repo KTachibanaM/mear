@@ -10,6 +10,7 @@ import (
 	"github.com/KTachibanaM/mear/internal/bucket"
 	"github.com/KTachibanaM/mear/internal/do"
 	"github.com/KTachibanaM/mear/internal/engine"
+	"github.com/KTachibanaM/mear/internal/s3"
 	"github.com/KTachibanaM/mear/internal/utils"
 	"github.com/joho/godotenv"
 
@@ -19,17 +20,17 @@ import (
 func Host() error {
 	err := godotenv.Load()
 	if err != nil {
-		return fmt.Errorf("could not load .env file: %w", err)
+		return fmt.Errorf("could not load .env file: %v", err)
 	}
 
 	// 1. Get agent binary url
 	log.Println("getting agent binary url...")
-	agent_binary_url := "http://minio-agent-binary:9000/bin/mear-agent"
+	agent_binary_url := "http://minio:9000/bin/mear-agent"
 
 	// 2. Provision buckets
 	logs_bucket_suffix, err := do.RandomBucketSuffix(10)
 	if err != nil {
-		return fmt.Errorf("could not generate random string for logs bucket name: %w", err)
+		return fmt.Errorf("could not generate random string for logs bucket name: %v", err)
 	}
 	access_key_id, exists := os.LookupEnv("AWS_ACCESS_KEY_ID")
 	if !exists {
@@ -40,35 +41,38 @@ func Host() error {
 		return fmt.Errorf("AWS_SECRET_ACCESS_KEY is not set")
 	}
 	log.Println("provisioning buckets...")
-	source_bucket_provisioner := bucket.NewNoOpBucketProvisioner(DevContainerSource, false)
-	destination_bucket_provisioner := bucket.NewNoOpBucketProvisioner(DevContainerDestination, true)
-	logs_bucket_provisioner := bucket.NewDigitalOceanBucketProvisioner(
+	source_target := s3.NewS3Target(
+		s3.NewS3Bucket(
+			bucket.DevContainerS3Session,
+			"source",
+		),
+		"MakeMine1948_256kb.rm",
+	)
+	destination_session := bucket.DevContainerS3Session
+	destination_bucket := s3.NewS3Bucket(destination_session, "destination")
+	destination_target := s3.NewS3Target(destination_bucket, "output.mp4")
+	logs_session := bucket.NewDigitalOceanSpacesS3Session(
 		do.NewStaticDigitalOceanDataCenterGuesser("nyc3"),
-		"mear-logs-"+logs_bucket_suffix,
-		"agent.log",
-		access_key_id,
-		secret_access_key,
+		access_key_id, secret_access_key,
 	)
-	bucket_provisioner := bucket.NewMultiBucketProvisioner(
-		source_bucket_provisioner,
-		destination_bucket_provisioner,
-		logs_bucket_provisioner,
+	logs_bucket := s3.NewS3Bucket(logs_session, fmt.Sprintf("mear-logs-%v", logs_bucket_suffix))
+	logs_target := s3.NewS3Target(logs_bucket, "agent.log")
+
+	bucket_provisioner := bucket.NewMultiBucketProvisioner()
+	err = bucket_provisioner.Provision(
+		[]*s3.S3Bucket{destination_bucket, logs_bucket},
 	)
-	s3_targets, err := bucket_provisioner.Provision()
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
 		return utils.CombineErrors(err, bucket_teardown_err)
 	}
-	s3_source := s3_targets[0]
-	s3_destination := s3_targets[1]
-	s3_logs := s3_targets[2]
 
 	// 3. Gather agent args
 	log.Println("gathering agent args...")
 	agent_args := agent.NewAgentArgs(
-		s3_source,
-		s3_destination,
-		s3_logs,
+		source_target,
+		destination_target,
+		logs_target,
 		[]string{},
 	)
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
@@ -90,7 +94,7 @@ func Host() error {
 
 	// 5. Tail for logs and result
 	log.Println("tailing for logs and result...")
-	result := NewS3LogsTailer(s3_logs).Tail()
+	result := NewS3LogsTailer(logs_target).Tail()
 	if result {
 		log.Println("agent run succeeded")
 	} else {

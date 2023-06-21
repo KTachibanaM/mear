@@ -31,7 +31,7 @@ func DownloadFfmpeg(workspace_dir string) (string, error) {
 	url := "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
 	resp, err := client.Get(url)
 	if err != nil {
-		return "", fmt.Errorf("could not download ffmpeg: %w", err)
+		return "", fmt.Errorf("could not download ffmpeg: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -39,7 +39,7 @@ func DownloadFfmpeg(workspace_dir string) (string, error) {
 	tar := path.Join(workspace_dir, "ffmpeg.tar.xz")
 	out, err := os.Create(tar)
 	if err != nil {
-		return "", fmt.Errorf("could not create ffmpeg.tar.xz file: %w", err)
+		return "", fmt.Errorf("could not create ffmpeg.tar.xz file: %v", err)
 	}
 	defer out.Close()
 
@@ -61,23 +61,23 @@ func DownloadFfmpeg(workspace_dir string) (string, error) {
 	// Write the body to file
 	_, err = io.Copy(out, in)
 	if err != nil {
-		return "", fmt.Errorf("could not write ffmpeg.tar.xz file: %w", err)
+		return "", fmt.Errorf("could not write ffmpeg.tar.xz file: %v", err)
 	}
 
 	// Untar the tar.gz file
 	tar_f, err := os.Open(tar)
 	if err != nil {
-		return "", fmt.Errorf("could not open ffmpeg.tar.xz file: %w", err)
+		return "", fmt.Errorf("could not open ffmpeg.tar.xz file: %v", err)
 	}
 	err = Untar(workspace_dir, tar_f)
 	if err != nil {
-		return "", fmt.Errorf("could not untar ffmpeg.tar.xz file: %w", err)
+		return "", fmt.Errorf("could not untar ffmpeg.tar.xz file: %v", err)
 	}
 
 	// Find the ffmpeg executable
 	files, err := os.ReadDir(workspace_dir)
 	if err != nil {
-		return "", fmt.Errorf("could not read ffmpeg directory: %w", err)
+		return "", fmt.Errorf("could not read ffmpeg directory: %v", err)
 	}
 	var dirs []string
 	for _, file := range files {

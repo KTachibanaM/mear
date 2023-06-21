@@ -3,27 +3,17 @@ package s3
 import "fmt"
 
 type S3Target struct {
-	EndpointUrl     string `json:"endpointUrl"`
-	Region          string `json:"region"`
-	BucketName      string `json:"bucketName"`
-	ObjectKey       string `json:"objectName"`
-	AccessKeyId     string `json:"accessKeyId"`
-	SecretAccessKey string `json:"secretAccessKey"`
-	PathStyleUrl    bool   `json:"pathStyleUrl"`
+	S3Bucket  *S3Bucket `json:"s3Bucket"`
+	ObjectKey string    `json:"objectKey"`
 }
 
 func (t *S3Target) String() string {
-	return fmt.Sprintf("s3://%v/%v (endpoint=%v,region=%v)", t.BucketName, t.ObjectKey, t.EndpointUrl, t.Region)
+	return fmt.Sprintf("s3://%v/%v (endpoint=%v,region=%v)", t.S3Bucket.BucketName, t.ObjectKey, t.S3Bucket.S3Session.EndpointUrl, t.S3Bucket.S3Session.Region)
 }
 
-func NewS3Target(EndpointUrl, Region, BucketName, ObjectKey, AccessKeyId, SecretAccessKey string, PathStyleUrl bool) *S3Target {
+func NewS3Target(s3_bucket *S3Bucket, ObjectKey string) *S3Target {
 	return &S3Target{
-		EndpointUrl:     EndpointUrl,
-		Region:          Region,
-		BucketName:      BucketName,
-		ObjectKey:       ObjectKey,
-		AccessKeyId:     AccessKeyId,
-		SecretAccessKey: SecretAccessKey,
-		PathStyleUrl:    PathStyleUrl,
+		S3Bucket:  s3_bucket,
+		ObjectKey: ObjectKey,
 	}
 }

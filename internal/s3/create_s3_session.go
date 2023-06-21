@@ -6,16 +6,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
-func CreateS3Session(s3_target *S3Target) (*session.Session, error) {
+func CreateS3Session(s3_session *S3Session) (*session.Session, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(s3_target.EndpointUrl),
-		Region:   aws.String(s3_target.Region),
+		Endpoint: aws.String(s3_session.EndpointUrl),
+		Region:   aws.String(s3_session.Region),
 		Credentials: credentials.NewStaticCredentials(
-			s3_target.AccessKeyId,
-			s3_target.SecretAccessKey,
+			s3_session.AccessKeyId,
+			s3_session.SecretAccessKey,
 			"",
 		),
-		S3ForcePathStyle: aws.Bool(s3_target.PathStyleUrl),
+		S3ForcePathStyle: aws.Bool(s3_session.PathStyleUrl),
 	})
 	if err != nil {
 		return nil, err

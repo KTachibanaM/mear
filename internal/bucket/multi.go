@@ -6,42 +6,33 @@ import (
 )
 
 type MultiBucketProvisioner struct {
-	provisioners       []BucketProvisioner
-	provisioned_states []bool
+	provisioned_buckets []*s3.S3Bucket
 }
 
-func NewMultiBucketProvisioner(provisioners ...BucketProvisioner) *MultiBucketProvisioner {
+func NewMultiBucketProvisioner() *MultiBucketProvisioner {
 	return &MultiBucketProvisioner{
-		provisioners:       provisioners,
-		provisioned_states: make([]bool, len(provisioners)),
+		provisioned_buckets: []*s3.S3Bucket{},
 	}
 }
 
-func (p *MultiBucketProvisioner) Provision() ([]*s3.S3Target, error) {
-	var s3_targets []*s3.S3Target
+func (p *MultiBucketProvisioner) Provision(buckets []*s3.S3Bucket) error {
 	var errors error
-	for i, provisioner := range p.provisioners {
-		s3_target, err := provisioner.Provision()
-		p.provisioned_states[i] = err == nil
+	for _, bucket := range buckets {
+		provisioned_bucket, err := NewBucketProvisioner(bucket.S3Session).Provision(bucket.BucketName)
 		if err != nil {
 			errors = multierror.Append(errors, err)
 		} else {
-			s3_targets = append(s3_targets, s3_target)
+			p.provisioned_buckets = append(p.provisioned_buckets, provisioned_bucket)
 		}
 	}
-	if errors != nil {
-		return nil, errors
-	}
-	return s3_targets, nil
+	return errors
 }
 
 func (p *MultiBucketProvisioner) Teardown() error {
 	var errors error
-	for i, provisioner := range p.provisioners {
-		if p.provisioned_states[i] {
-			if err := provisioner.Teardown(); err != nil {
-				errors = multierror.Append(errors, err)
-			}
+	for _, bucket := range p.provisioned_buckets {
+		if err := NewBucketProvisioner(bucket.S3Session).Teardown(); err != nil {
+			errors = multierror.Append(errors, err)
 		}
 	}
 	return errors

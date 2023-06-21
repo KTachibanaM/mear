@@ -6,6 +6,6 @@ packages:
   - curl
 
 runcmd:
-  - curl -sL http://minio-agent-binary:9000/bin/mear-agent -o /root/mear-agent
+  - curl -sL http://minio:9000/bin/mear-agent -o /root/mear-agent
   - chmod +x /root/mear-agent
   - /root/mear-agent REPLACE_ME

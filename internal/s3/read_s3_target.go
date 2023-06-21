@@ -16,9 +16,9 @@ var Timeout = 5 * time.Second
 // ReadS3Target reads an S3 target to a byte array.
 func ReadS3Target(s3_target *S3Target) ([]byte, error) {
 	// Create S3 session
-	sess, err := CreateS3Session(s3_target)
+	sess, err := CreateS3Session(s3_target.S3Bucket.S3Session)
 	if err != nil {
-		return nil, fmt.Errorf("could not create S3 session for reading: %w", err)
+		return nil, fmt.Errorf("could not create S3 session for reading: %v", err)
 	}
 
 	// Get object
@@ -26,14 +26,14 @@ func ReadS3Target(s3_target *S3Target) ([]byte, error) {
 	defer cancel()
 
 	obj, err := s3.New(sess).GetObjectWithContext(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(s3_target.BucketName),
+		Bucket: aws.String(s3_target.S3Bucket.BucketName),
 		Key:    aws.String(s3_target.ObjectKey),
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "NoSuchKey") {
 			return nil, fmt.Errorf("object doesn't exist yet")
 		}
-		return nil, fmt.Errorf("could not get object for reading: %w", err)
+		return nil, fmt.Errorf("could not get object for reading: %v", err)
 	}
 
 	// Read object contents
