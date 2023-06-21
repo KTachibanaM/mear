@@ -51,7 +51,7 @@ func Host() error {
 
 	// 5. Tail for logs and result
 	log.Println("tailing for logs and result...")
-	result := TailS3Logs(s3_logs)
+	result := NewS3LogsTailer(s3_logs).Tail()
 	if result {
 		log.Println("agent run succeeded")
 	} else {

@@ -13,11 +13,28 @@ import (
 var TailingMaxIntervals = 720
 var TailingInterval = 10 * time.Second
 
+// Warn if heartbeat is later than
+var HeartbeatTolerance = 30 * time.Second
+
+type S3LogsTailer struct {
+	next_log_position int
+	s3_logs           *s3.S3Target
+	last_heartbeat    time.Time
+}
+
+func NewS3LogsTailer(s3_logs *s3.S3Target) *S3LogsTailer {
+	return &S3LogsTailer{
+		next_log_position: 0,
+		s3_logs:           s3_logs,
+		last_heartbeat:    time.Now(),
+	}
+}
+
 // processStructuredLog processes structured log
 // It returns a pair of booleans
 // The first is true if the agent run is finished
 // The second is true if the agent run is successful
-func processStructuredLog(structured_log map[string]interface{}) (bool, bool) {
+func (t *S3LogsTailer) processStructuredLog(structured_log map[string]interface{}) (bool, bool) {
 	// Parse out msg
 	msg, ok := structured_log["msg"].(string)
 	if !ok {
@@ -36,23 +53,39 @@ func processStructuredLog(structured_log map[string]interface{}) (bool, bool) {
 			context = "agent"
 		}
 
-		// Log agent log
-		agent_log := log.WithFields(log.Fields{
-			"context": context,
-		})
-		switch level {
-		case "trace":
-			agent_log.Trace(msg)
-		case "debug":
-			agent_log.Debug(msg)
-		case "info":
-			agent_log.Info(msg)
-		case "warn":
-			agent_log.Warn(msg)
-		case "error":
-			agent_log.Error(msg)
-		case "fatal":
-			agent_log.Fatal(msg)
+		// Parse out potential heartbeat
+		heartbeat, ok := structured_log["heartbeat"].(bool)
+		if !ok {
+			heartbeat = false
+		}
+		since_last_heartbeat := time.Since(t.last_heartbeat)
+		if !heartbeat && since_last_heartbeat > HeartbeatTolerance {
+			log.Warnln("heartbeat is late")
+		}
+
+		if heartbeat {
+			// Log heartbeat
+			log.Infof("last heartbeat was %v seconds ago", since_last_heartbeat.Seconds())
+			t.last_heartbeat = time.Now()
+		} else {
+			// Log agent log
+			agent_log := log.WithFields(log.Fields{
+				"context": context,
+			})
+			switch level {
+			case "trace":
+				agent_log.Trace(msg)
+			case "debug":
+				agent_log.Debug(msg)
+			case "info":
+				agent_log.Info(msg)
+			case "warn":
+				agent_log.Warn(msg)
+			case "error":
+				agent_log.Error(msg)
+			case "fatal":
+				agent_log.Fatal(msg)
+			}
 		}
 	}
 
@@ -69,14 +102,14 @@ func processStructuredLog(structured_log map[string]interface{}) (bool, bool) {
 // It returns a pair of booleans
 // The first is true if the agent run is finished
 // The second is true if the agent run is successful
-func processLogLines(log_lines []string) (bool, bool) {
+func (t *S3LogsTailer) processLogLines(log_lines []string) (bool, bool) {
 	for _, log_line := range log_lines {
 		var structured_log map[string]interface{}
 		err := json.Unmarshal([]byte(log_line), &structured_log)
 		if err != nil {
 			log.Warnf("failed to unmarshal log line: %v", log_line)
 		} else {
-			terminate, result := processStructuredLog(structured_log)
+			terminate, result := t.processStructuredLog(structured_log)
 			if terminate {
 				return true, result
 			}
@@ -89,8 +122,8 @@ func processLogLines(log_lines []string) (bool, bool) {
 // It returns a pair of booleans
 // The first is true if the agent run is finished
 // The second is true if the agent run is successful
-func interval(s3_logs *s3.S3Target, next_log_position *int) (bool, bool) {
-	bytes, err := s3.ReadS3Target(s3_logs)
+func (t *S3LogsTailer) interval() (bool, bool) {
+	bytes, err := s3.ReadS3Target(t.s3_logs)
 	if err != nil {
 		log.Warnf("failed to read logs, wait for next interval: %v", err)
 		return false, false
@@ -104,23 +137,21 @@ func interval(s3_logs *s3.S3Target, next_log_position *int) (bool, bool) {
 			log_lines = append(log_lines, trimmed_log_line)
 		}
 	}
-	if *next_log_position >= len(log_lines) {
-		log.Info("no new logs, wait for next interval")
+	if t.next_log_position >= len(log_lines) {
 		return false, false
 	}
-	terminate, result := processLogLines(log_lines[*next_log_position:])
+	terminate, result := t.processLogLines(log_lines[t.next_log_position:])
 	if terminate {
 		return true, result
 	}
-	*next_log_position = len(log_lines) + 1
+	t.next_log_position = len(log_lines) + 1
 	return false, false
 }
 
-// TailS3Logs tails logs from s3_logs and returns whether the agent run is successful
-func TailS3Logs(s3_logs *s3.S3Target) bool {
-	next_log_position := 0
+// Tail tails logs from s3_logs and returns whether the agent run is successful
+func (t *S3LogsTailer) Tail() bool {
 	for i := 0; i < TailingMaxIntervals; i++ {
-		terminate, result := interval(s3_logs, &next_log_position)
+		terminate, result := t.interval()
 		if terminate {
 			return result
 		}

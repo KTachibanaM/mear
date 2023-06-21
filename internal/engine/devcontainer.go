@@ -66,7 +66,7 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agen
 	commands := []string{
 		"apt update",
 		"apt install -y curl",
-		"curl -sL " + agent_binary_url + " -o /root/mear-agent",
+		"curl --fail -sL " + agent_binary_url + " -o /root/mear-agent",
 		"chmod +x /root/mear-agent",
 		"/root/mear-agent " + encoded_agent_args,
 	}
