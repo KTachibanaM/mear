@@ -8,6 +8,7 @@ import (
 	"github.com/KTachibanaM/mear/internal/agent"
 	"github.com/KTachibanaM/mear/internal/bucket"
 	"github.com/KTachibanaM/mear/internal/engine"
+	"github.com/KTachibanaM/mear/internal/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -19,11 +20,22 @@ func Host() error {
 
 	// 2. Provision buckets
 	log.Println("provisioning buckets...")
-	bucket_provisioner := bucket.NewDevcontainerBucketProvisioner()
-	s3_source, s3_destination, s3_logs, err := bucket_provisioner.Provision()
+	source_bucket_provisioner := bucket.NewNoOpBucketProvisioner(bucket.DevContainerSource, false)
+	destination_bucket_provisioner := bucket.NewNoOpBucketProvisioner(bucket.DevContainerDestination, true)
+	logs_bucket_provisioner := bucket.NewNoOpBucketProvisioner(bucket.DevContainerLogs, true)
+	bucket_provisioner := bucket.NewMultiBucketProvisioner(
+		source_bucket_provisioner,
+		destination_bucket_provisioner,
+		logs_bucket_provisioner,
+	)
+	s3_targets, err := bucket_provisioner.Provision()
 	if err != nil {
-		return err
+		bucket_teardown_err := bucket_provisioner.Teardown()
+		return utils.CombineErrors(err, bucket_teardown_err)
 	}
+	s3_source := s3_targets[0]
+	s3_destination := s3_targets[1]
+	s3_logs := s3_targets[2]
 
 	// 3. Gather agent args
 	log.Println("gathering agent args...")
@@ -35,18 +47,19 @@ func Host() error {
 	)
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
 	if err != nil {
-		return err
+		bucket_teardown_err := bucket_provisioner.Teardown()
+		return utils.CombineErrors(err, bucket_teardown_err)
 	}
 	encoded := base64.StdEncoding.EncodeToString(agent_args_json)
 
 	// 4. Provision engine
 	log.Println("provisioning engine...")
 	engine_provisioner := engine.NewDevcontainerEngineProvisioner()
-	engine_id, err := engine_provisioner.Provision(agent_binary_url, encoded)
+	err = engine_provisioner.Provision(agent_binary_url, encoded)
 	if err != nil {
-		engine_teardown_err := engine_provisioner.Teardown(engine_id)
+		engine_teardown_err := engine_provisioner.Teardown()
 		bucket_teardown_err := bucket_provisioner.Teardown()
-		return fmt.Errorf("failed to provision engine: %v; engine teardown error :%v; bucket teardown err: %v", err, engine_teardown_err, bucket_teardown_err)
+		return utils.CombineErrors(err, engine_teardown_err, bucket_teardown_err)
 	}
 
 	// 5. Tail for logs and result
@@ -60,10 +73,10 @@ func Host() error {
 
 	// 6. Deprovision engine
 	log.Println("deprovisioning engine...")
-	err = engine_provisioner.Teardown(engine_id)
+	err = engine_provisioner.Teardown()
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
-		return fmt.Errorf("failed to teardown engine: %v; bucket tear down error: %v", err, bucket_teardown_err)
+		return utils.CombineErrors(err, bucket_teardown_err)
 	}
 
 	// 7. Deprovision buckets

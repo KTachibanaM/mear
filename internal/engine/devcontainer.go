@@ -20,16 +20,20 @@ var DockerNetworkName = "mear-network"
 var DockerExecCheckMaxIntervals = 60
 var DockerExecCheckInterval = 2 * time.Second
 
-type DevcontainerEngineProvisioner struct{}
-
-func NewDevcontainerEngineProvisioner() *DevcontainerEngineProvisioner {
-	return &DevcontainerEngineProvisioner{}
+type DevcontainerEngineProvisioner struct {
+	container_id string
 }
 
-func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agent_args string) (string, error) {
+func NewDevcontainerEngineProvisioner() *DevcontainerEngineProvisioner {
+	return &DevcontainerEngineProvisioner{
+		container_id: "",
+	}
+}
+
+func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agent_args string) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		return "", fmt.Errorf("failed to create docker client: %v", err)
+		return fmt.Errorf("failed to create docker client: %v", err)
 	}
 	defer cli.Close()
 	ctx := context.Background()
@@ -42,24 +46,24 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		Architecture: "amd64",
 	}, DockerContainerName)
 	if err != nil {
-		return "", fmt.Errorf("failed to create container: %v", err)
+		return fmt.Errorf("failed to create container: %v", err)
 	}
-	container_id := container_create_resp.ID
+	p.container_id = container_create_resp.ID
 
 	log.Println("starting container...")
-	err = cli.ContainerStart(ctx, container_id, types.ContainerStartOptions{})
+	err = cli.ContainerStart(ctx, p.container_id, types.ContainerStartOptions{})
 	if err != nil {
-		return container_id, fmt.Errorf("failed to start container: %v", err)
+		return fmt.Errorf("failed to start container: %v", err)
 	}
 
 	log.Println("connecting container to network...")
 	network_inspect_resp, err := cli.NetworkInspect(ctx, DockerNetworkName, types.NetworkInspectOptions{})
 	if err != nil {
-		return container_id, fmt.Errorf("failed to inspect network: %v", err)
+		return fmt.Errorf("failed to inspect network: %v", err)
 	}
-	err = cli.NetworkConnect(ctx, network_inspect_resp.ID, container_id, nil)
+	err = cli.NetworkConnect(ctx, network_inspect_resp.ID, p.container_id, nil)
 	if err != nil {
-		return container_id, fmt.Errorf("failed to connect container to network: %v", err)
+		return fmt.Errorf("failed to connect container to network: %v", err)
 	}
 
 	log.Println("provisioning container...")
@@ -78,23 +82,23 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		} else {
 			log.Infof("executing in container the command '/root/mear-agent'\n")
 		}
-		exec_create_resp, err := cli.ContainerExecCreate(context.Background(), container_id, types.ExecConfig{
+		exec_create_resp, err := cli.ContainerExecCreate(context.Background(), p.container_id, types.ExecConfig{
 			Cmd: []string{"sh", "-c", command},
 		})
 		if err != nil {
 			if !last_command {
-				return container_id, fmt.Errorf("failed to create exec: %v", err)
+				return fmt.Errorf("failed to create exec: %v", err)
 			} else {
-				return container_id, fmt.Errorf("failed to create exec for /root/mear-agent command")
+				return fmt.Errorf("failed to create exec for /root/mear-agent command")
 			}
 		}
 
 		err = cli.ContainerExecStart(context.Background(), exec_create_resp.ID, types.ExecStartCheck{})
 		if err != nil {
 			if !last_command {
-				return container_id, fmt.Errorf("failed to start exec: %v", err)
+				return fmt.Errorf("failed to start exec: %v", err)
 			} else {
-				return container_id, fmt.Errorf("failed to start exec for /root/mear-agent command")
+				return fmt.Errorf("failed to start exec for /root/mear-agent command")
 			}
 		}
 		if !last_command {
@@ -102,9 +106,9 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agen
 				exec_inspect_resp, err := cli.ContainerExecInspect(ctx, exec_create_resp.ID)
 				if err != nil {
 					if !last_command {
-						return container_id, fmt.Errorf("failed to inspect exec: %v", err)
+						return fmt.Errorf("failed to inspect exec: %v", err)
 					} else {
-						return container_id, fmt.Errorf("failed to inspect exec for /root/mear-agent command")
+						return fmt.Errorf("failed to inspect exec for /root/mear-agent command")
 					}
 				}
 				if !exec_inspect_resp.Running {
@@ -115,12 +119,12 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		}
 	}
 
-	return container_id, nil
+	return nil
 }
 
-func (p *DevcontainerEngineProvisioner) Teardown(container_id string) error {
-	if container_id == "" {
-		return fmt.Errorf("container wasn't provisioned")
+func (p *DevcontainerEngineProvisioner) Teardown() error {
+	if p.container_id == "" {
+		return fmt.Errorf("container was never provisioned")
 	}
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
@@ -132,13 +136,13 @@ func (p *DevcontainerEngineProvisioner) Teardown(container_id string) error {
 
 	log.Println("stopping container...")
 	stop_timeout := 0
-	err = cli.ContainerStop(ctx, container_id, container.StopOptions{Timeout: &stop_timeout})
+	err = cli.ContainerStop(ctx, p.container_id, container.StopOptions{Timeout: &stop_timeout})
 	if err != nil {
 		return err
 	}
 
 	log.Println("removing container...")
-	err = cli.ContainerRemove(ctx, container_id, types.ContainerRemoveOptions{
+	err = cli.ContainerRemove(ctx, p.container_id, types.ContainerRemoveOptions{
 		Force: true,
 	})
 	if err != nil {
