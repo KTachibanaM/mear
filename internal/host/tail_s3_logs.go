@@ -18,29 +18,41 @@ var TailingInterval = 10 * time.Second
 // The first is true if the agent run is finished
 // The second is true if the agent run is successful
 func processStructuredLog(structured_log map[string]interface{}) (bool, bool) {
-	// Parse out msg and level
+	// Parse out msg
 	msg, ok := structured_log["msg"].(string)
 	if !ok {
 		log.Warnf("failed to find msg in structured log: %v", structured_log)
 	} else {
+		// Parse out level
 		level, ok := structured_log["level"].(string)
 		if !ok {
 			log.Warnf("failed to find level in structured log: %v", structured_log)
 			level = "info"
 		}
+
+		// Parse out potential context
+		context, ok := structured_log["context"].(string)
+		if !ok {
+			context = "agent"
+		}
+
+		// Log agent log
+		agent_log := log.WithFields(log.Fields{
+			"context": context,
+		})
 		switch level {
 		case "trace":
-			log.Trace(msg)
+			agent_log.Trace(msg)
 		case "debug":
-			log.Debug(msg)
+			agent_log.Debug(msg)
 		case "info":
-			log.Info(msg)
+			agent_log.Info(msg)
 		case "warn":
-			log.Warn(msg)
+			agent_log.Warn(msg)
 		case "error":
-			log.Error(msg)
+			agent_log.Error(msg)
 		case "fatal":
-			log.Fatal(msg)
+			agent_log.Fatal(msg)
 		}
 	}
 
