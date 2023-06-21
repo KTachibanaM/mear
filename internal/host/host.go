@@ -44,11 +44,9 @@ func Host() error {
 	engine_provisioner := engine.NewDevcontainerEngineProvisioner()
 	engine_id, err := engine_provisioner.Provision(agent_binary_url, encoded)
 	if err != nil {
-		teardown_err := engine_provisioner.Teardown(engine_id)
-		if teardown_err != nil {
-			return fmt.Errorf("failed to teardown engine: %v while provisioning engine: %v", teardown_err, err)
-		}
-		return fmt.Errorf("failed to provision engine: %v but engine was torn down", err)
+		engine_teardown_err := engine_provisioner.Teardown(engine_id)
+		bucket_teardown_err := bucket_provisioner.Teardown()
+		return fmt.Errorf("failed to provision engine: %v; engine teardown error :%v; bucket teardown err: %v", err, engine_teardown_err, bucket_teardown_err)
 	}
 
 	// 5. Tail for logs and result
@@ -60,17 +58,18 @@ func Host() error {
 		log.Println("agent run failed")
 	}
 
-	// 6. Deprovision buckets
-	err = bucket_provisioner.Teardown()
-	if err != nil {
-		return fmt.Errorf("failed to teardown buckets: %v", err)
-	}
-
-	// 7. Deprovision engine
+	// 6. Deprovision engine
 	log.Println("deprovisioning engine...")
 	err = engine_provisioner.Teardown(engine_id)
 	if err != nil {
-		return fmt.Errorf("failed to teardown engine: %v", err)
+		bucket_teardown_err := bucket_provisioner.Teardown()
+		return fmt.Errorf("failed to teardown engine: %v; bucket tear down error: %v", err, bucket_teardown_err)
+	}
+
+	// 7. Deprovision buckets
+	err = bucket_provisioner.Teardown()
+	if err != nil {
+		return fmt.Errorf("failed to teardown buckets: %v", err)
 	}
 
 	return nil
