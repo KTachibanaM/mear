@@ -17,8 +17,6 @@ import (
 )
 
 func Host() error {
-	log.SetReportCaller(true)
-
 	err := godotenv.Load()
 	if err != nil {
 		return fmt.Errorf("could not load .env file: %w", err)
