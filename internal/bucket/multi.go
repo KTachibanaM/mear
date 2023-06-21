@@ -6,23 +6,23 @@ import (
 )
 
 type MultiBucketProvisioner struct {
-	provisioned_buckets []*s3.S3Bucket
+	provisioned []*s3.S3Bucket
 }
 
 func NewMultiBucketProvisioner() *MultiBucketProvisioner {
 	return &MultiBucketProvisioner{
-		provisioned_buckets: []*s3.S3Bucket{},
+		provisioned: []*s3.S3Bucket{},
 	}
 }
 
 func (p *MultiBucketProvisioner) Provision(buckets []*s3.S3Bucket) error {
 	var errors error
 	for _, bucket := range buckets {
-		provisioned_bucket, err := NewBucketProvisioner(bucket.S3Session).Provision(bucket.BucketName)
+		err := ProvisionBucket(bucket)
 		if err != nil {
 			errors = multierror.Append(errors, err)
 		} else {
-			p.provisioned_buckets = append(p.provisioned_buckets, provisioned_bucket)
+			p.provisioned = append(p.provisioned, bucket)
 		}
 	}
 	return errors
@@ -30,8 +30,8 @@ func (p *MultiBucketProvisioner) Provision(buckets []*s3.S3Bucket) error {
 
 func (p *MultiBucketProvisioner) Teardown() error {
 	var errors error
-	for _, bucket := range p.provisioned_buckets {
-		if err := NewBucketProvisioner(bucket.S3Session).Teardown(); err != nil {
+	for _, bucket := range p.provisioned {
+		if err := TeardownBucket(bucket); err != nil {
 			errors = multierror.Append(errors, err)
 		}
 	}

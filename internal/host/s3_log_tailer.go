@@ -13,8 +13,8 @@ import (
 var TailingMaxIntervals = 720
 var TailingInterval = 10 * time.Second
 
-// Warn if heartbeat is later than
-var HeartbeatTolerance = 30 * time.Second
+var HeartbeatWarnTolerance = 30 * time.Second
+var HeartbeatErrorTolerance = 5 * time.Minute
 
 type S3LogsTailer struct {
 	next_log_position int
@@ -58,14 +58,10 @@ func (t *S3LogsTailer) processStructuredLog(structured_log map[string]interface{
 		if !ok {
 			heartbeat = false
 		}
-		since_last_heartbeat := time.Since(t.last_heartbeat)
-		if !heartbeat && since_last_heartbeat > HeartbeatTolerance {
-			log.Warnln("heartbeat is late")
-		}
 
 		if heartbeat {
 			// Log heartbeat
-			log.Infof("last heartbeat was %v seconds ago", since_last_heartbeat.Seconds())
+			log.Infoln("received heartbeat from agent")
 			t.last_heartbeat = time.Now()
 		} else {
 			// Log agent log
@@ -123,6 +119,16 @@ func (t *S3LogsTailer) processLogLines(log_lines []string) (bool, bool) {
 // The first is true if the agent run is finished
 // The second is true if the agent run is successful
 func (t *S3LogsTailer) interval() (bool, bool) {
+	// Process heartbeat
+	now := time.Now()
+	if now.Sub(t.last_heartbeat) > HeartbeatErrorTolerance {
+		log.Errorf("last heartbeat was %v seconds ago, terminating...", now.Sub(t.last_heartbeat).Seconds())
+		return true, false
+	} else if now.Sub(t.last_heartbeat) > HeartbeatWarnTolerance {
+		log.Warnf("last heartbeat was %v seconds ago", now.Sub(t.last_heartbeat).Seconds())
+	}
+
+	// Process logs
 	bytes, err := s3.ReadS3Target(t.s3_logs)
 	if err != nil {
 		log.Warnf("failed to read logs, wait for next interval: %v", err)
