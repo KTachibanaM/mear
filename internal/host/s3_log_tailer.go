@@ -125,7 +125,7 @@ func (t *S3LogsTailer) interval() (bool, bool) {
 		log.Errorf("last heartbeat was %v seconds ago, terminating...", now.Sub(t.last_heartbeat).Seconds())
 		return true, false
 	} else if now.Sub(t.last_heartbeat) > HeartbeatWarnTolerance {
-		log.Warnf("last heartbeat was %v seconds ago", now.Sub(t.last_heartbeat).Seconds())
+		log.Warnf("last heartbeat was late (%v seconds ago)", now.Sub(t.last_heartbeat).Seconds())
 	}
 
 	// Process logs
