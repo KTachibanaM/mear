@@ -5,12 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/KTachibanaM/mear/internal/agent"
 	"github.com/KTachibanaM/mear/internal/bucket"
-	"github.com/KTachibanaM/mear/internal/s3"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -25,10 +23,6 @@ var DockerNetworkName = "mear-network"
 // 2 minutes
 var DockerExecCheckMaxIntervals = 60
 var DockerExecCheckInterval = 2 * time.Second
-
-// 2 hours
-var TailingMaxIntervals = 1440
-var TailingInterval = 10 * time.Second
 
 func Host() error {
 	// 1. Get agent binary url
@@ -130,56 +124,11 @@ func Host() error {
 
 	// 5. Tail for logs and result
 	log.Println("tailing for logs and result...")
-	next_log_position := 0
-	for i := 0; i < TailingMaxIntervals; i++ {
-		terminate := false
-		bytes, err := s3.ReadS3Target(s3_logs)
-		if err != nil {
-			log.Warnf("failed to read logs, wait for next interval: %v", err)
-		} else {
-			logs := string(bytes)
-			raw_log_lines := strings.Split(logs, "\n")
-			log_lines := []string{}
-			for _, raw_log_line := range raw_log_lines {
-				trimmed_log_line := strings.Trim(raw_log_line, " ")
-				if trimmed_log_line != "" {
-					log_lines = append(log_lines, trimmed_log_line)
-				}
-			}
-			if next_log_position >= len(log_lines) {
-				log.Info("no new logs, wait for next interval")
-			} else {
-				for _, log_line := range log_lines[next_log_position:] {
-					var structured_log map[string]interface{}
-					err = json.Unmarshal([]byte(log_line), &structured_log)
-					if err != nil {
-						log.Warnf("failed to unmarshal log: %v", err)
-					} else {
-						msg, ok := structured_log["msg"].(string)
-						if !ok {
-							log.Warnf("failed to find msg in structured log")
-						} else {
-							log.Info(msg)
-						}
-						result, ok := structured_log["result"].(bool)
-						if ok {
-							if result {
-								log.Info("agent ran successfully")
-							} else {
-								log.Errorln("agent run failed")
-							}
-							terminate = true
-							break
-						}
-					}
-				}
-				next_log_position = len(log_lines) + 1
-			}
-		}
-		if terminate {
-			break
-		}
-		time.Sleep(TailingInterval)
+	result := TailS3Logs(s3_logs)
+	if result {
+		log.Println("agent run succeeded")
+	} else {
+		log.Println("agent run failed")
 	}
 
 	// 6. Deprovision buckets
