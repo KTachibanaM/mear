@@ -52,7 +52,7 @@ func Host() error {
 	destination_bucket := s3.NewS3Bucket(destination_session, "destination")
 	destination_target := s3.NewS3Target(destination_bucket, "output.mp4")
 	logs_session := bucket.NewDigitalOceanSpacesS3Session(
-		do.NewStaticDigitalOceanDataCenterGuesser("nyc3"),
+		do.NewStaticDigitalOceanDataCenterPicker("nyc3"),
 		access_key_id, secret_access_key,
 	)
 	logs_bucket := s3.NewS3Bucket(logs_session, fmt.Sprintf("mear-logs-%v", logs_bucket_suffix))
