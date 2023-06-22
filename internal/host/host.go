@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/KTachibanaM/mear/internal/agent"
 	"github.com/KTachibanaM/mear/internal/bucket"
@@ -28,17 +27,13 @@ func Host() error {
 	agent_binary_url := "http://minio:9000/bin/mear-agent"
 
 	// 2. Provision buckets
-	logs_bucket_suffix, err := do.RandomBucketSuffix(10)
+	logs_bucket_name, err := bucket.GetDigitalOceanSpacesBucketName("mear-logs")
 	if err != nil {
 		return fmt.Errorf("could not generate random string for logs bucket name: %v", err)
 	}
-	access_key_id, exists := os.LookupEnv("AWS_ACCESS_KEY_ID")
-	if !exists {
-		return fmt.Errorf("AWS_ACCESS_KEY_ID is not set")
-	}
-	secret_access_key, exists := os.LookupEnv("AWS_SECRET_ACCESS_KEY")
-	if !exists {
-		return fmt.Errorf("AWS_SECRET_ACCESS_KEY is not set")
+	access_key_id, secret_access_key, err := bucket.GetDigitalOceanSpacesCredentialsFromEnv()
+	if err != nil {
+		return fmt.Errorf("could not get DigitalOcean Spaces credentials from env: %v", err)
 	}
 	log.Println("provisioning buckets...")
 	source_target := s3.NewS3Target(
@@ -55,7 +50,7 @@ func Host() error {
 		do.NewStaticDigitalOceanDataCenterPicker("nyc3"),
 		access_key_id, secret_access_key,
 	)
-	logs_bucket := s3.NewS3Bucket(logs_session, fmt.Sprintf("mear-logs-%v", logs_bucket_suffix))
+	logs_bucket := s3.NewS3Bucket(logs_session, logs_bucket_name)
 	logs_target := s3.NewS3Target(logs_bucket, "agent.log")
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
