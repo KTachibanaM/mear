@@ -1,0 +1,28 @@
+name: Build and release host CLI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.20.x]
+        platform: [windows/amd64, windows/arm64, linux/amd64, linux/arm64, linux/arm/v7, darwin/amd64, darwin/arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install dependencies
+        run: go get .
+      - name: Build
+        run: cd ./cmd/host && go build -o ../../bin/mear

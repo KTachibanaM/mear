@@ -3,7 +3,7 @@
 build:
 		mkdir -p bin && \
     	cd cmd/agent && \
-    	go build -o ../../bin/mear-agent && \
+    	GOOS=linux GOARCH=amd64 go build -o ../../bin/mear-agent && \
     	cd ../host && \
     	go build -o ../../bin/mear
 

@@ -16,6 +16,7 @@
 			"extensions": [
 				"golang.go",
 				"ms-vscode.makefile-tools",
+				"github.vscode-github-actions",
 				"GitHub.copilot-nightly",
 				"GitHub.copilot-chat",
 				"streetsidesoftware.code-spell-checker"
