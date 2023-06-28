@@ -1,0 +1,24 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: mear-host
+    main: ./cmd/host
+    binary: mear
+  - id: mear-agent
+    main: ./cmd/agent
+    binary: mear-agent
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+archives:
+  - id: mear-host
+    builds:
+    - mear-host
+    format: binary
+  - id: mear-agent
+    builds:
+    - mear-agent
+    format: binary
