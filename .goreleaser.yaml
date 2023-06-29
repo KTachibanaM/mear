@@ -5,6 +5,8 @@ builds:
   - id: mear-host
     main: ./cmd/host
     binary: mear
+    env:
+      - CGO_ENABLED=0
   - id: mear-agent
     main: ./cmd/agent
     binary: mear-agent
@@ -12,6 +14,8 @@ builds:
       - linux
     goarch:
       - amd64
+    env:
+      - CGO_ENABLED=0
 
 archives:
   - id: mear-host

@@ -24,7 +24,10 @@ func Host() error {
 
 	// 1. Get agent binary url
 	log.Println("getting agent binary url...")
-	agent_binary_url := "http://minio:9000/bin/mear-agent"
+	agent_binary_url, err := NewGithubAgentBinaryURLRetriever().RetrieveUrl()
+	if err != nil {
+		return fmt.Errorf("could not get agent binary url: %v", err)
+	}
 
 	// 2. Provision buckets
 	logs_bucket_name, err := bucket.GetDigitalOceanSpacesBucketName("mear-logs")
