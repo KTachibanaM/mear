@@ -17,9 +17,18 @@ import (
 )
 
 func Host() error {
+	// 0. Load credentials
 	err := godotenv.Load()
 	if err != nil {
 		return fmt.Errorf("could not load .env file: %v", err)
+	}
+	access_key_id, secret_access_key, err := bucket.GetDigitalOceanSpacesCredentialsFromEnv()
+	if err != nil {
+		return fmt.Errorf("could not get DigitalOcean Spaces credentials from env: %v", err)
+	}
+	do_token, err := do.GetDigitalOceanTokenFromEnv()
+	if err != nil {
+		return fmt.Errorf("could not get DigitalOcean token from env: %v", err)
 	}
 
 	// 1. Get agent binary url
@@ -30,13 +39,10 @@ func Host() error {
 	}
 
 	// 2. Provision buckets
-	logs_bucket_name, err := bucket.GetDigitalOceanSpacesBucketName("mear-logs")
+	do_dc_picker := do.NewStaticDigitalOceanDataCenterPicker("sfo3")
+	logs_bucket_name, err := utils.GetRandomName("mear-logs", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
 	if err != nil {
 		return fmt.Errorf("could not generate random string for logs bucket name: %v", err)
-	}
-	access_key_id, secret_access_key, err := bucket.GetDigitalOceanSpacesCredentialsFromEnv()
-	if err != nil {
-		return fmt.Errorf("could not get DigitalOcean Spaces credentials from env: %v", err)
 	}
 	log.Println("provisioning buckets...")
 	source_target := s3.NewS3Target(
@@ -50,8 +56,9 @@ func Host() error {
 	destination_bucket := s3.NewS3Bucket(destination_session, "destination")
 	destination_target := s3.NewS3Target(destination_bucket, "output.mp4")
 	logs_session := bucket.NewDigitalOceanSpacesS3Session(
-		do.NewStaticDigitalOceanDataCenterPicker("nyc3"),
-		access_key_id, secret_access_key,
+		do_dc_picker,
+		access_key_id,
+		secret_access_key,
 	)
 	logs_bucket := s3.NewS3Bucket(logs_session, logs_bucket_name)
 	logs_target := s3.NewS3Target(logs_bucket, "agent.log")
@@ -82,7 +89,17 @@ func Host() error {
 
 	// 4. Provision engine
 	log.Println("provisioning engine...")
-	engine_provisioner := engine.NewDevcontainerEngineProvisioner()
+	droplet_name, err := utils.GetRandomName("mear-engine", engine.DigitalOceanDropletSuffixLength, engine.DigitalOceanDropletNameMaxLength)
+	if err != nil {
+		return fmt.Errorf("could not generate random string for droplet name: %v", err)
+	}
+	engine_provisioner := engine.NewDigitalOceanEngineProvisioner(
+		do_token,
+		do_dc_picker,
+		droplet_name,
+		"s-1vcpu-512mb-10gb",
+		"ubuntu-22-04-x64",
+	)
 	err = engine_provisioner.Provision(agent_binary_url, encoded)
 	if err != nil {
 		engine_teardown_err := engine_provisioner.Teardown()
