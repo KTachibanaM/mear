@@ -40,6 +40,10 @@ func Host() error {
 
 	// 2. Provision buckets
 	do_dc_picker := do.NewStaticDigitalOceanDataCenterPicker("sfo3")
+	destination_bucket_name, err := utils.GetRandomName("mear-dst", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
+	if err != nil {
+		return fmt.Errorf("could not generate random string for destination bucket name: %v", err)
+	}
 	logs_bucket_name, err := utils.GetRandomName("mear-logs", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
 	if err != nil {
 		return fmt.Errorf("could not generate random string for logs bucket name: %v", err)
@@ -47,20 +51,21 @@ func Host() error {
 	log.Println("provisioning buckets...")
 	source_target := s3.NewS3Target(
 		s3.NewS3Bucket(
-			bucket.DevContainerS3Session,
-			"source",
+			bucket.MearDevSession,
+			"mear-dev",
 		),
 		"MakeMine1948_256kb.rm",
 	)
-	destination_session := bucket.DevContainerS3Session
-	destination_bucket := s3.NewS3Bucket(destination_session, "destination")
-	destination_target := s3.NewS3Target(destination_bucket, "output.mp4")
-	logs_session := bucket.NewDigitalOceanSpacesS3Session(
+	do_spaces_session := bucket.NewDigitalOceanSpacesS3Session(
 		do_dc_picker,
 		access_key_id,
 		secret_access_key,
 	)
-	logs_bucket := s3.NewS3Bucket(logs_session, logs_bucket_name)
+
+	destination_bucket := s3.NewS3Bucket(do_spaces_session, destination_bucket_name)
+	destination_target := s3.NewS3Target(destination_bucket, "output.mp4")
+
+	logs_bucket := s3.NewS3Bucket(do_spaces_session, logs_bucket_name)
 	logs_target := s3.NewS3Target(logs_bucket, "agent.log")
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
