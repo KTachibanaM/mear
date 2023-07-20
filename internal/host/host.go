@@ -16,9 +16,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Host() error {
+func Host(upload_filename, save_to_filename string) error {
+	input_ext, err := utils.InferExt(upload_filename)
+	if err != nil {
+		return fmt.Errorf("could not infer ext from upload filename: %v", err)
+	}
+
 	// 0. Load credentials
-	err := godotenv.Load()
+	err = godotenv.Load()
 	if err != nil {
 		return fmt.Errorf("could not load .env file: %v", err)
 	}
@@ -39,45 +44,41 @@ func Host() error {
 	}
 
 	// 2. Provision buckets
-	do_dc_picker := do.NewStaticDigitalOceanDataCenterPicker("sfo3")
-	destination_bucket_name, err := utils.GetRandomName("mear-dst", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
-	if err != nil {
-		return fmt.Errorf("could not generate random string for destination bucket name: %v", err)
-	}
-	logs_bucket_name, err := utils.GetRandomName("mear-logs", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
-	if err != nil {
-		return fmt.Errorf("could not generate random string for logs bucket name: %v", err)
-	}
 	log.Println("provisioning buckets...")
-	source_target := s3.NewS3Target(
-		s3.NewS3Bucket(
-			bucket.MearDevSession,
-			"mear-dev",
-		),
-		"MakeMine1948_256kb.rm",
-	)
+	bucket_name, err := utils.GetRandomName("mear-s3", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
+	if err != nil {
+		return fmt.Errorf("could not generate random string for bucket name: %v", err)
+	}
+	do_dc_picker := do.NewStaticDigitalOceanDataCenterPicker("sfo3")
 	do_spaces_session := bucket.NewDigitalOceanSpacesS3Session(
 		do_dc_picker,
 		access_key_id,
 		secret_access_key,
 	)
 
-	destination_bucket := s3.NewS3Bucket(do_spaces_session, destination_bucket_name)
-	destination_target := s3.NewS3Target(destination_bucket, "output.mp4")
-
-	logs_bucket := s3.NewS3Bucket(do_spaces_session, logs_bucket_name)
-	logs_target := s3.NewS3Target(logs_bucket, "agent.log")
+	s3_bucket := s3.NewS3Bucket(do_spaces_session, bucket_name)
+	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%s", input_ext))
+	destination_target := s3.NewS3Target(s3_bucket, "output.mp4")
+	logs_target := s3.NewS3Target(s3_bucket, "agent.log")
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
 	err = bucket_provisioner.Provision(
-		[]*s3.S3Bucket{destination_bucket, logs_bucket},
+		[]*s3.S3Bucket{s3_bucket},
 	)
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
 		return utils.CombineErrors(err, bucket_teardown_err)
 	}
 
-	// 3. Gather agent args
+	// 3. Upload file
+	log.Println("uploading file...")
+	err = s3.UploadFile(upload_filename, source_target, true)
+	if err != nil {
+		bucket_teardown_err := bucket_provisioner.Teardown()
+		return utils.CombineErrors(err, bucket_teardown_err)
+	}
+
+	// 4. Gather agent args
 	log.Println("gathering agent args...")
 	agent_args := agent.NewAgentArgs(
 		source_target,
@@ -92,7 +93,7 @@ func Host() error {
 	}
 	encoded := base64.StdEncoding.EncodeToString(agent_args_json)
 
-	// 4. Provision engine
+	// 5. Provision engine
 	log.Println("provisioning engine...")
 	droplet_name, err := utils.GetRandomName("mear-engine", engine.DigitalOceanDropletSuffixLength, engine.DigitalOceanDropletNameMaxLength)
 	if err != nil {
@@ -112,7 +113,7 @@ func Host() error {
 		return utils.CombineErrors(err, engine_teardown_err, bucket_teardown_err)
 	}
 
-	// 5. Tail for logs and result
+	// 6. Tail for logs and result
 	log.Println("tailing for logs and result...")
 	result := NewS3LogsTailer(logs_target).Tail()
 	if result {
@@ -121,7 +122,7 @@ func Host() error {
 		log.Println("agent run failed")
 	}
 
-	// 6. Deprovision engine
+	// 7. Deprovision engine
 	log.Println("deprovisioning engine...")
 	err = engine_provisioner.Teardown()
 	if err != nil {
@@ -129,7 +130,15 @@ func Host() error {
 		return utils.CombineErrors(err, bucket_teardown_err)
 	}
 
-	// 7. Deprovision buckets
+	// 8. Download file
+	log.Println("downloading file...")
+	err = s3.DownloadFile(save_to_filename, destination_target, true)
+	if err != nil {
+		bucket_teardown_err := bucket_provisioner.Teardown()
+		return utils.CombineErrors(err, bucket_teardown_err)
+	}
+
+	// 9. Deprovision buckets
 	log.Println("deprovisioning buckets...")
 	err = bucket_provisioner.Teardown()
 	if err != nil {
