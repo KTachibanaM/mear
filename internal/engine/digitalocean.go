@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/KTachibanaM/mear/internal/do"
 	"github.com/digitalocean/godo"
@@ -13,6 +14,8 @@ import (
 
 var DigitalOceanDropletSuffixLength = 8
 var DigitalOceanDropletNameMaxLength = 20
+var DigitalOceanDropletActiveStatusInterval = 10 * time.Second
+var DigitalOceanDropletActiveStatusMaxAttempts = 30
 
 type DigitalOceanEngineProvisioner struct {
 	token              string
@@ -74,6 +77,19 @@ runcmd:
 	}
 
 	p.droplet_id = droplet.ID
+
+	for i := 0; i < DigitalOceanDropletActiveStatusMaxAttempts; i++ {
+		log.Printf("waiting for droplet %v to be active...", p.droplet_name)
+		droplet, _, err = client.Droplets.Get(*ctx, droplet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get droplet status: %v", err)
+		}
+		if droplet.Status == "active" {
+			log.Printf("droplet %v is active", p.droplet_name)
+			break
+		}
+		time.Sleep(DigitalOceanDropletActiveStatusInterval)
+	}
 
 	return nil
 }

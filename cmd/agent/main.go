@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var upload_log_interval = 10 * time.Second
+var UploadLogInterval = 10 * time.Second
 
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -50,7 +50,7 @@ func main() {
 	log.SetOutput(io.MultiWriter(os.Stdout, log_f))
 
 	// Setup recurring job to upload log file to S3
-	upload_ticker := time.NewTicker(upload_log_interval)
+	upload_ticker := time.NewTicker(UploadLogInterval)
 	go func() {
 		for range upload_ticker.C {
 			log.WithFields(log.Fields{

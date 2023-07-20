@@ -10,7 +10,7 @@ import (
 )
 
 // Tailing for 2 hours max
-var TailingMaxIntervals = 720
+var TailingMaxAttempts = 720
 var TailingInterval = 10 * time.Second
 
 var HeartbeatWarnTolerance = 30 * time.Second
@@ -156,7 +156,7 @@ func (t *S3LogsTailer) interval() (bool, bool) {
 
 // Tail tails logs from s3_logs and returns whether the agent run is successful
 func (t *S3LogsTailer) Tail() bool {
-	for i := 0; i < TailingMaxIntervals; i++ {
+	for i := 0; i < TailingMaxAttempts; i++ {
 		terminate, result := t.interval()
 		if terminate {
 			return result

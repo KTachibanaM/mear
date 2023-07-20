@@ -17,7 +17,7 @@ var DockerContainerName = "mear-agent-testing"
 var DockerNetworkName = "mear-network"
 
 // Checking Docker exec's for 2 minutes max
-var DockerExecCheckMaxIntervals = 60
+var DockerExecCheckMaxAttempts = 60
 var DockerExecCheckInterval = 2 * time.Second
 
 type DevcontainerEngineProvisioner struct {
@@ -102,7 +102,7 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agen
 			}
 		}
 		if !last_command {
-			for j := 0; j < DockerExecCheckMaxIntervals; j++ {
+			for j := 0; j < DockerExecCheckMaxAttempts; j++ {
 				exec_inspect_resp, err := cli.ContainerExecInspect(ctx, exec_create_resp.ID)
 				if err != nil {
 					if !last_command {
