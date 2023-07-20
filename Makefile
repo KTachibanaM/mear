@@ -4,7 +4,7 @@ build:
 		mkdir -p bin && \
     	cd cmd/agent && \
     	GOOS=linux GOARCH=amd64 go build -o ../../bin/mear-agent && \
-    	cd ../host && \
+    	cd ../ffmpeg-shim && \
     	go build -o ../../bin/mear
 
 upload-agent-binary: build
