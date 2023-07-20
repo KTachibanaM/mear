@@ -16,7 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Host(upload_filename, save_to_filename string) error {
+func Host(upload_filename, save_to_filename string, deprovision_resources bool) error {
 	input_ext, err := utils.InferExt(upload_filename)
 	if err != nil {
 		return fmt.Errorf("could not infer ext from upload filename: %v", err)
@@ -122,28 +122,31 @@ func Host(upload_filename, save_to_filename string) error {
 		log.Println("agent run failed")
 	}
 
-	// 7. Deprovision engine
-	log.Println("deprovisioning engine...")
-	err = engine_provisioner.Teardown()
-	if err != nil {
-		bucket_teardown_err := bucket_provisioner.Teardown()
-		return utils.CombineErrors(err, bucket_teardown_err)
-	}
+	if deprovision_resources {
+		// 7. Deprovision engine
+		log.Println("deprovisioning engine...")
+		err = engine_provisioner.Teardown()
+		if err != nil {
+			bucket_teardown_err := bucket_provisioner.Teardown()
+			return utils.CombineErrors(err, bucket_teardown_err)
+		}
 
-	// 8. Download file
-	log.Println("downloading file...")
-	err = s3.DownloadFile(save_to_filename, destination_target, true)
-	if err != nil {
-		bucket_teardown_err := bucket_provisioner.Teardown()
-		return utils.CombineErrors(err, bucket_teardown_err)
-	}
+		// 8. Download file
+		log.Println("downloading file...")
+		err = s3.DownloadFile(save_to_filename, destination_target, true)
+		if err != nil {
+			bucket_teardown_err := bucket_provisioner.Teardown()
+			return utils.CombineErrors(err, bucket_teardown_err)
+		}
 
-	// 9. Deprovision buckets
-	log.Println("deprovisioning buckets...")
-	err = bucket_provisioner.Teardown()
-	if err != nil {
-		return fmt.Errorf("failed to teardown buckets: %v", err)
+		// 9. Deprovision buckets
+		log.Println("deprovisioning buckets...")
+		err = bucket_provisioner.Teardown()
+		if err != nil {
+			return fmt.Errorf("failed to teardown buckets: %v", err)
+		}
+	} else {
+		log.Warnf("skipping deprovisioning resources. you might want to deprovision them manually to avoid unnecessary costs.")
 	}
-
 	return nil
 }

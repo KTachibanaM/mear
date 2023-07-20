@@ -8,11 +8,11 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		log.Fatalln("usage: mear <upload_filename> <save_to_filename>")
+	if len(os.Args) != 4 {
+		log.Fatalln("usage: mear <upload_filename> <save_to_filename> <deprovision_resources>")
 	}
 
-	err := host.Host(os.Args[1], os.Args[2])
+	err := host.Host(os.Args[1], os.Args[2], os.Args[3] == "true")
 	if err != nil {
 		log.Fatalln(err)
 	}
