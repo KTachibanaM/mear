@@ -58,17 +58,6 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		Image: godo.DropletCreateImage{
 			Slug: p.droplet_image_slug,
 		},
-		UserData: fmt.Sprintf(`#cloud-config
-package_update: true
-package_upgrade: true
-
-packages:
-    - curl
-
-runcmd:
-    - curl -sL %v -o /root/mear-agent
-    - chmod +x /root/mear-agent
-    - /root/mear-agent %v`, agent_binary_url, encoded_agent_args),
 	}
 
 	droplet, _, err := client.Droplets.Create(*ctx, create_request)

@@ -66,59 +66,6 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		return fmt.Errorf("failed to connect container to network: %v", err)
 	}
 
-	log.Println("provisioning container...")
-	commands := []string{
-		"apt update",
-		"apt install -y curl",
-		"curl --fail -sL " + agent_binary_url + " -o /root/mear-agent",
-		"chmod +x /root/mear-agent",
-		"/root/mear-agent " + encoded_agent_args,
-	}
-	for i := 0; i < len(commands); i++ {
-		command := commands[i]
-		last_command := i == len(commands)-1
-		if !last_command {
-			log.Infof("executing in container the command '%v'\n", command)
-		} else {
-			log.Infof("executing in container the command '/root/mear-agent'\n")
-		}
-		exec_create_resp, err := cli.ContainerExecCreate(context.Background(), p.container_id, types.ExecConfig{
-			Cmd: []string{"sh", "-c", command},
-		})
-		if err != nil {
-			if !last_command {
-				return fmt.Errorf("failed to create exec: %v", err)
-			} else {
-				return fmt.Errorf("failed to create exec for /root/mear-agent command")
-			}
-		}
-
-		err = cli.ContainerExecStart(context.Background(), exec_create_resp.ID, types.ExecStartCheck{})
-		if err != nil {
-			if !last_command {
-				return fmt.Errorf("failed to start exec: %v", err)
-			} else {
-				return fmt.Errorf("failed to start exec for /root/mear-agent command")
-			}
-		}
-		if !last_command {
-			for j := 0; j < DockerExecCheckMaxAttempts; j++ {
-				exec_inspect_resp, err := cli.ContainerExecInspect(ctx, exec_create_resp.ID)
-				if err != nil {
-					if !last_command {
-						return fmt.Errorf("failed to inspect exec: %v", err)
-					} else {
-						return fmt.Errorf("failed to inspect exec for /root/mear-agent command")
-					}
-				}
-				if !exec_inspect_resp.Running {
-					break
-				}
-				time.Sleep(DockerExecCheckInterval)
-			}
-		}
-	}
-
 	return nil
 }
 

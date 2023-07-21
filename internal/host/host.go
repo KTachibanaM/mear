@@ -59,7 +59,6 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 	s3_bucket := s3.NewS3Bucket(do_spaces_session, bucket_name)
 	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%s", input_ext))
 	destination_target := s3.NewS3Target(s3_bucket, "output.mp4")
-	logs_target := s3.NewS3Target(s3_bucket, "agent.log")
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
 	err = bucket_provisioner.Provision(
@@ -83,7 +82,6 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 	agent_args := agent.NewAgentArgs(
 		source_target,
 		destination_target,
-		logs_target,
 		[]string{},
 	)
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
@@ -113,14 +111,9 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 		return utils.CombineErrors(err, engine_teardown_err, bucket_teardown_err)
 	}
 
-	// 6. Tail for logs and result
-	log.Println("tailing for logs and result...")
-	result := NewS3LogsTailer(logs_target).Tail()
-	if !result {
-		log.Println("successfully ran agent")
-	} else {
-		log.Println("failed to run agent")
-	}
+	// 6. Run agent on engine
+	// TODO
+	result := false
 
 	// 7. Deprovision engine
 	if !skip_deprovision_engine {
