@@ -7,18 +7,18 @@ import (
 	"strings"
 )
 
-type AgentBinaryURLRetriever interface {
+type AgentBinary interface {
 	RetrieveUrl() (string, error)
 }
 
-type DevContainerAgentBinaryURLRetriever struct{}
+type DevContainerAgentBinary struct{}
 
-func NewDevContainerAgentBinaryURLRetriever() *DevContainerAgentBinaryURLRetriever {
-	return &DevContainerAgentBinaryURLRetriever{}
+func NewDevContainerAgentBinary() *DevContainerAgentBinary {
+	return &DevContainerAgentBinary{}
 }
 
-func (r *DevContainerAgentBinaryURLRetriever) RetrieveUrl() (string, error) {
-	return "http://minio:9000/bin/mear-agent", nil
+func (r *DevContainerAgentBinary) RetrieveUrl() (string, error) {
+	return "http://minio:9000/mear-bin/mear-agent", nil
 }
 
 var GitHubRepoOwner = "KTachibanaM"
@@ -29,13 +29,13 @@ type GitHubRelease struct {
 	TagName string `json:"tag_name"`
 }
 
-type GitHubAgentBinaryURLRetriever struct{}
+type GitHubAgentBinary struct{}
 
-func NewGithubAgentBinaryURLRetriever() *GitHubAgentBinaryURLRetriever {
-	return &GitHubAgentBinaryURLRetriever{}
+func NewGithubAgentBinary() *GitHubAgentBinary {
+	return &GitHubAgentBinary{}
 }
 
-func (r *GitHubAgentBinaryURLRetriever) RetrieveUrl() (string, error) {
+func (r *GitHubAgentBinary) RetrieveUrl() (string, error) {
 	req, err := http.NewRequest("GET", GitHubReleaseApiUrl, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request for github release API: %v", err)

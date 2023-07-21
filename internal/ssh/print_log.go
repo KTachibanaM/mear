@@ -51,7 +51,9 @@ func print_log(line string) {
 	var structured_log map[string]interface{}
 	err := json.Unmarshal([]byte(line), &structured_log)
 	if err != nil {
-		log.Info(line)
+		log.WithFields(log.Fields{
+			"context": "ssh",
+		}).Info(line)
 	} else {
 		print_agent_log(structured_log)
 	}

@@ -71,19 +71,18 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url string, ssh_p
 		"apt update",
 		"apt install -y openssh-server",
 		"mkdir -p /root/.ssh",
-		fmt.Sprintf("echo \"%v\" > /root/.ssh/authorized_keys", ssh_public_key),
+		fmt.Sprintf("echo \"%v\" > /root/.ssh/authorized_keys", string(ssh_public_key)),
 		"service ssh start",
 	}
 	for i := 0; i < len(commands); i++ {
 		command := commands[i]
-		log.Infof("executing in container the command '%v'\n", command)
+		log.Infof("docker executing command: '%v'\n", command)
 
 		exec_create_resp, err := cli.ContainerExecCreate(context.Background(), p.container_id, types.ExecConfig{
 			Cmd: []string{"sh", "-c", command},
 		})
 		if err != nil {
 			return "", fmt.Errorf("failed to create exec: %v", err)
-
 		}
 
 		err = cli.ContainerExecStart(context.Background(), exec_create_resp.ID, types.ExecStartCheck{})
@@ -104,13 +103,13 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url string, ssh_p
 		}
 	}
 
-	log.Println("getting container's IP address...")
+	log.Println("getting container's ip address...")
 	container, err := cli.ContainerInspect(context.Background(), p.container_id)
 	if err != nil {
 		return "", fmt.Errorf("failed to inspect container: %v", err)
 	}
 
-	return container.NetworkSettings.IPAddress, nil
+	return container.NetworkSettings.Networks[DockerNetworkName].IPAddress, nil
 }
 
 func (p *DevcontainerEngineProvisioner) Teardown() error {

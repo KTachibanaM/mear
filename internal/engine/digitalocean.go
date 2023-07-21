@@ -58,11 +58,9 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_p
 		Image: godo.DropletCreateImage{
 			Slug: p.droplet_image_slug,
 		},
-		SSHKeys: []godo.DropletCreateSSHKey{
-			{
-				Fingerprint: string(ssh_public_key),
-			},
-		},
+		SSHKeys: []godo.DropletCreateSSHKey{{
+			Fingerprint: string(ssh_public_key),
+		}},
 	}
 	droplet, _, err := client.Droplets.Create(*ctx, create_request)
 	if err != nil {
@@ -84,14 +82,14 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_p
 		time.Sleep(DigitalOceanDropletActiveStatusInterval)
 	}
 
-	log.Println("getting droplet IP address...")
+	log.Println("getting droplet ip address...")
 	droplet, _, err = client.Droplets.Get(*ctx, droplet.ID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get droplet status: %v", err)
 	}
 	ip_address, err := droplet.PublicIPv4()
 	if err != nil {
-		return "", fmt.Errorf("failed to get droplet IP address: %v", err)
+		return "", fmt.Errorf("failed to get droplet ip address: %v", err)
 	}
 	return ip_address, nil
 }

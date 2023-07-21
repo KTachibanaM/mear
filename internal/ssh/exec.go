@@ -3,11 +3,12 @@ package ssh
 import (
 	"bufio"
 	"fmt"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
 
-func SshExec(hostname, username string, private_key []byte, command string) error {
+func SshExec(hostname, username string, private_key []byte, command string, timeout time.Duration) error {
 	// Parse private key
 	signer, err := ssh.ParsePrivateKey(private_key)
 	if err != nil {
@@ -21,6 +22,7 @@ func SshExec(hostname, username string, private_key []byte, command string) erro
 			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         timeout,
 	}
 
 	// Connect to remote server
