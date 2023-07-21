@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/KTachibanaM/mear/internal/agent"
@@ -70,6 +71,9 @@ func main() {
 		log.WithFields(log.Fields{
 			"result": false,
 		}).Printf("failed to run agent: %v", err)
+		if strings.Contains(err.Error(), "signal: killed") {
+			log.Warnln("ffmpeg might have been killed by os. you might want to use an engine with larger RAM.")
+		}
 	} else {
 		log.WithFields(log.Fields{
 			"result": true,

@@ -16,7 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Host(upload_filename, save_to_filename string, deprovision_resources bool) error {
+func Host(upload_filename, save_to_filename string, skip_deprovision_engine, skip_deprovision_buckets bool) error {
 	input_ext, err := utils.InferExt(upload_filename)
 	if err != nil {
 		return fmt.Errorf("could not infer ext from upload filename: %v", err)
@@ -116,37 +116,46 @@ func Host(upload_filename, save_to_filename string, deprovision_resources bool) 
 	// 6. Tail for logs and result
 	log.Println("tailing for logs and result...")
 	result := NewS3LogsTailer(logs_target).Tail()
-	if result {
-		log.Println("agent run succeeded")
+	if !result {
+		log.Println("successfully ran agent")
 	} else {
-		log.Println("agent run failed")
+		log.Println("failed to run agent")
 	}
 
-	if deprovision_resources {
-		// 7. Deprovision engine
+	// 7. Deprovision engine
+	if !skip_deprovision_engine {
 		log.Println("deprovisioning engine...")
 		err = engine_provisioner.Teardown()
 		if err != nil {
 			bucket_teardown_err := bucket_provisioner.Teardown()
 			return utils.CombineErrors(err, bucket_teardown_err)
 		}
+	} else {
+		log.Warnln("skipped deprovisioning engine. you might want to deprovision manually.")
+	}
 
-		// 8. Download file
+	// 8. Download file
+	if result {
 		log.Println("downloading file...")
 		err = s3.DownloadFile(save_to_filename, destination_target, true)
 		if err != nil {
 			bucket_teardown_err := bucket_provisioner.Teardown()
 			return utils.CombineErrors(err, bucket_teardown_err)
 		}
+	} else {
+		log.Warnln("failed to run agent. skipped downloading file.")
+	}
 
-		// 9. Deprovision buckets
+	// 9. Deprovision buckets
+	if !skip_deprovision_buckets {
 		log.Println("deprovisioning buckets...")
 		err = bucket_provisioner.Teardown()
 		if err != nil {
 			return fmt.Errorf("failed to teardown buckets: %v", err)
 		}
 	} else {
-		log.Warnf("skipping deprovisioning resources. you might want to deprovision them manually to avoid unnecessary costs.")
+		log.Warnln("skipped deprovisioning buckets. you might want to deprovision manually.")
 	}
+
 	return nil
 }
