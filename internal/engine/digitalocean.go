@@ -47,7 +47,7 @@ func (p *DigitalOceanEngineProvisioner) createClient() (*godo.Client, *context.C
 	return client, &ctx
 }
 
-func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url, encoded_agent_args string) error {
+func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_public_key []byte) (string, error) {
 	client, ctx := p.createClient()
 
 	log.Printf("creating droplet %v...", p.droplet_name)
@@ -58,11 +58,15 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		Image: godo.DropletCreateImage{
 			Slug: p.droplet_image_slug,
 		},
+		SSHKeys: []godo.DropletCreateSSHKey{
+			{
+				Fingerprint: string(ssh_public_key),
+			},
+		},
 	}
-
 	droplet, _, err := client.Droplets.Create(*ctx, create_request)
 	if err != nil {
-		return fmt.Errorf("failed to create droplet: %v", err)
+		return "", fmt.Errorf("failed to create droplet: %v", err)
 	}
 
 	p.droplet_id = droplet.ID
@@ -71,7 +75,7 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		log.Printf("waiting for droplet %v to be active...", p.droplet_name)
 		droplet, _, err = client.Droplets.Get(*ctx, droplet.ID)
 		if err != nil {
-			return fmt.Errorf("failed to get droplet status: %v", err)
+			return "", fmt.Errorf("failed to get droplet status: %v", err)
 		}
 		if droplet.Status == "active" {
 			log.Printf("droplet %v is active", p.droplet_name)
@@ -80,7 +84,16 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url, encoded_agen
 		time.Sleep(DigitalOceanDropletActiveStatusInterval)
 	}
 
-	return nil
+	log.Println("getting droplet IP address...")
+	droplet, _, err = client.Droplets.Get(*ctx, droplet.ID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get droplet status: %v", err)
+	}
+	ip_address, err := droplet.PublicIPv4()
+	if err != nil {
+		return "", fmt.Errorf("failed to get droplet IP address: %v", err)
+	}
+	return ip_address, nil
 }
 
 func (p *DigitalOceanEngineProvisioner) Teardown() error {

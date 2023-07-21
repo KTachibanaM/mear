@@ -36,15 +36,11 @@ func main() {
 	// Run agent
 	err = agent.Agent(&agent_args)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"result": false,
-		}).Printf("failed to run agent: %v", err)
 		if strings.Contains(err.Error(), "signal: killed") {
 			log.Warnln("ffmpeg might have been killed by os. you might want to use an engine with larger RAM.")
 		}
+		log.Errorf("failed to run agent: %v", err)
 	} else {
-		log.WithFields(log.Fields{
-			"result": true,
-		}).Info("successfully ran agent")
+		log.Info("successfully ran agent")
 	}
 }

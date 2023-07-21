@@ -10,6 +10,7 @@ import (
 	"github.com/KTachibanaM/mear/internal/do"
 	"github.com/KTachibanaM/mear/internal/engine"
 	"github.com/KTachibanaM/mear/internal/s3"
+	"github.com/KTachibanaM/mear/internal/ssh"
 	"github.com/KTachibanaM/mear/internal/utils"
 	"github.com/joho/godotenv"
 
@@ -89,10 +90,15 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 		bucket_teardown_err := bucket_provisioner.Teardown()
 		return utils.CombineErrors(err, bucket_teardown_err)
 	}
-	encoded := base64.StdEncoding.EncodeToString(agent_args_json)
+	encoded_agent_args := base64.StdEncoding.EncodeToString(agent_args_json)
 
 	// 5. Provision engine
 	log.Println("provisioning engine...")
+	private_key, public_key, err := ssh.Keygen()
+	if err != nil {
+		bucket_teardown_err := bucket_provisioner.Teardown()
+		return utils.CombineErrors(err, bucket_teardown_err)
+	}
 	droplet_name, err := utils.GetRandomName("mear-engine", engine.DigitalOceanDropletSuffixLength, engine.DigitalOceanDropletNameMaxLength)
 	if err != nil {
 		return fmt.Errorf("could not generate random string for droplet name: %v", err)
@@ -104,7 +110,7 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 		"s-1vcpu-512mb-10gb",
 		"ubuntu-22-04-x64",
 	)
-	err = engine_provisioner.Provision(agent_binary_url, encoded)
+	ip_address, err := engine_provisioner.Provision(agent_binary_url, public_key)
 	if err != nil {
 		engine_teardown_err := engine_provisioner.Teardown()
 		bucket_teardown_err := bucket_provisioner.Teardown()
@@ -112,8 +118,22 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 	}
 
 	// 6. Run agent on engine
-	// TODO
-	result := false
+	result := true
+	commands := []string{
+		"apt update",
+		"apt install -y curl",
+		"curl --fail -sL " + agent_binary_url + " -o /root/mear-agent",
+		"chmod +x /root/mear-agent",
+		"/root/mear-agent " + encoded_agent_args,
+	}
+	for _, command := range commands {
+		log.Printf("running command: %v", command)
+		err := ssh.SshExec(ip_address, "root", private_key, command)
+		if err != nil {
+			result = false
+			break
+		}
+	}
 
 	// 7. Deprovision engine
 	if !skip_deprovision_engine {
