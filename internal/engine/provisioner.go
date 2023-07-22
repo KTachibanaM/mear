@@ -1,6 +1,6 @@
 package engine
 
 type EngineProvisioner interface {
-	Provision(agent_binary_url, encoded_agent_args string) error
+	Provision(agent_binary_url string, ssh_public_key []byte) (string, error)
 	Teardown() error
 }

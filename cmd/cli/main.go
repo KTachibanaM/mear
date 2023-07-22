@@ -33,7 +33,7 @@ func main() {
 		p.Fail("stack must be either dev or do")
 	}
 
-	err := host.Host(args.InputFile, args.OutputFile, args.RetainEngine, args.RetainBuckets)
+	err := host.Host(args.InputFile, args.OutputFile, args.Stack, args.RetainEngine, args.RetainBuckets)
 	if err != nil {
 		log.Fatalln(err)
 	}

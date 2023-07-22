@@ -9,6 +9,7 @@ import (
 
 	"github.com/KTachibanaM/mear/internal/agent"
 	"github.com/KTachibanaM/mear/internal/bucket"
+	"github.com/KTachibanaM/mear/internal/do"
 	"github.com/KTachibanaM/mear/internal/engine"
 	"github.com/KTachibanaM/mear/internal/s3"
 	"github.com/KTachibanaM/mear/internal/ssh"
@@ -20,49 +21,58 @@ import (
 
 var AgentExecutionTimeout = 1 * time.Hour
 
-func Host(input_file, output_file string, retain_engine, retain_buckets bool) error {
-	input_ext, err := utils.InferExt(input_file)
-	if err != nil {
-		return fmt.Errorf("could not infer ext from upload filename: %v", err)
-	}
-
-	// 0. Load credentials
-	err = godotenv.Load()
-	if err != nil {
-		return fmt.Errorf("could not load .env file: %v", err)
-	}
-	// access_key_id, secret_access_key, err := bucket.GetDigitalOceanSpacesCredentialsFromEnv()
-	// if err != nil {
-	// 	return fmt.Errorf("could not get DigitalOcean Spaces credentials from env: %v", err)
-	// }
-	// do_token, err := do.GetDigitalOceanTokenFromEnv()
-	// if err != nil {
-	// 	return fmt.Errorf("could not get DigitalOcean token from env: %v", err)
-	// }
-
+func Host(input_file, output_file, stack string, retain_engine, retain_buckets bool) error {
 	// 1. Get agent binary url
 	log.Println("getting agent binary url...")
-	agent_binary_url, err := NewDevContainerAgentBinary().RetrieveUrl()
-	// agent_binary_url, err := NewGithubAgentBinary().RetrieveUrl()
+	var agent_bin AgentBinary
+	if stack == "dev" {
+		agent_bin = NewDevContainerAgentBinary()
+	} else if stack == "do" {
+		agent_bin = NewGithubAgentBinary()
+	} else {
+		return fmt.Errorf("unknown stack name")
+	}
+	agent_binary_url, err := agent_bin.RetrieveUrl()
 	if err != nil {
 		return fmt.Errorf("could not get agent binary url: %v", err)
 	}
 
 	// 2. Provision buckets
 	log.Println("provisioning buckets...")
-	// bucket_name, err := utils.GetRandomName("mear-s3", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
-	// if err != nil {
-	// 	return fmt.Errorf("could not generate random string for bucket name: %v", err)
-	// }
-	// do_dc_picker := do.NewStaticDigitalOceanDataCenterPicker("sfo3")
-	// s3_session := bucket.NewDigitalOceanSpacesS3Session(
-	// 	do_dc_picker,
-	// 	access_key_id,
-	// 	secret_access_key,
-	// )
-	s3_session := bucket.DevContainerS3Session
+	input_ext, err := utils.InferExt(input_file)
+	if err != nil {
+		return fmt.Errorf("could not infer ext from upload filename: %v", err)
+	}
+	var s3_session *s3.S3Session
+	var bucket_name string
+	if stack == "dev" {
+		s3_session = bucket.DevContainerS3Session
+		bucket_name = "mear-dev"
+	} else if stack == "do" {
+		err = godotenv.Load()
+		if err != nil {
+			return fmt.Errorf("could not load .env file: %v", err)
+		}
+		access_key_id, secret_access_key, err := bucket.GetDigitalOceanSpacesCredentialsFromEnv()
+		if err != nil {
+			return fmt.Errorf("could not get DigitalOcean Spaces credentials from env: %v", err)
+		}
 
-	s3_bucket := s3.NewS3Bucket(s3_session, "mear-dev")
+		bucket_name, err = utils.GetRandomName("mear-s3", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
+		if err != nil {
+			return fmt.Errorf("could not generate random string for bucket name: %v", err)
+		}
+		do_dc_picker := do.NewStaticDigitalOceanDataCenterPicker("sfo3")
+		s3_session = bucket.NewDigitalOceanSpacesS3Session(
+			do_dc_picker,
+			access_key_id,
+			secret_access_key,
+		)
+	} else {
+		return fmt.Errorf("unknown stack name")
+	}
+
+	s3_bucket := s3.NewS3Bucket(s3_session, bucket_name)
 	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%s", input_ext))
 	destination_target := s3.NewS3Target(s3_bucket, "output.mp4")
 
@@ -104,18 +114,35 @@ func Host(input_file, output_file string, retain_engine, retain_buckets bool) er
 		bucket_teardown_err := bucket_provisioner.Teardown()
 		return utils.CombineErrors(err, bucket_teardown_err)
 	}
-	// droplet_name, err := utils.GetRandomName("mear-engine", engine.DigitalOceanDropletSuffixLength, engine.DigitalOceanDropletNameMaxLength)
-	// if err != nil {
-	// 	return fmt.Errorf("could not generate random string for droplet name: %v", err)
-	// }
-	// engine_provisioner := engine.NewDigitalOceanEngineProvisioner(
-	// 	do_token,
-	// 	do_dc_picker,
-	// 	droplet_name,
-	// 	"s-1vcpu-512mb-10gb",
-	// 	"ubuntu-22-04-x64",
-	// )
-	engine_provisioner := engine.NewDevcontainerEngineProvisioner()
+
+	var engine_provisioner engine.EngineProvisioner
+	if stack == "dev" {
+		engine_provisioner = engine.NewDevcontainerEngineProvisioner()
+	} else if stack == "do" {
+		err = godotenv.Load()
+		if err != nil {
+			return fmt.Errorf("could not load .env file: %v", err)
+		}
+		do_token, err := do.GetDigitalOceanTokenFromEnv()
+		if err != nil {
+			return fmt.Errorf("could not get DigitalOcean token from env: %v", err)
+		}
+		do_dc_picker := do.NewStaticDigitalOceanDataCenterPicker("sfo3")
+		droplet_name, err := utils.GetRandomName("mear-engine", engine.DigitalOceanDropletSuffixLength, engine.DigitalOceanDropletNameMaxLength)
+		if err != nil {
+			return fmt.Errorf("could not generate random string for droplet name: %v", err)
+		}
+		engine_provisioner = engine.NewDigitalOceanEngineProvisioner(
+			do_token,
+			do_dc_picker,
+			droplet_name,
+			"s-1vcpu-512mb-10gb",
+			"ubuntu-22-04-x64",
+		)
+	} else {
+		return fmt.Errorf("unknown stack name")
+	}
+
 	ip_address, err := engine_provisioner.Provision(agent_binary_url, public_key)
 	if err != nil {
 		engine_teardown_err := engine_provisioner.Teardown()
