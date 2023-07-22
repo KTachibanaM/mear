@@ -137,7 +137,7 @@ func Host(input_file, output_file, stack string, retain_engine, retain_buckets b
 			do_dc_picker,
 			droplet_name,
 			"s-1vcpu-512mb-10gb",
-			"ubuntu-22-04-x64",
+			"debian-11-x64",
 		)
 	} else {
 		return fmt.Errorf("unknown stack name")

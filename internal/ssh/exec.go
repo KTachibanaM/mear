@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
+
+var SshProbingMaxAttempts = 30
+var SshProbingInterval = 10 * time.Second
 
 func stream_scanner(scanner *bufio.Scanner) {
 	for scanner.Scan() {
@@ -35,8 +39,17 @@ func SshExec(hostname, username string, private_key []byte, command string, time
 	}
 
 	// Connect to remote server
-	conn, err := ssh.Dial("tcp", fmt.Sprintf("%v:22", hostname), config)
-	if err != nil {
+	var conn *ssh.Client
+	for i := 0; i < SshProbingMaxAttempts; i++ {
+		conn, err = ssh.Dial("tcp", fmt.Sprintf("%v:22", hostname), config)
+		if err == nil {
+			break
+		} else {
+			log.Warnf("failed to connect to server: %v, waiting...", err)
+			time.Sleep(SshProbingInterval)
+		}
+	}
+	if conn == nil {
 		return fmt.Errorf("failed to connect to server: %v", err)
 	}
 	defer conn.Close()
