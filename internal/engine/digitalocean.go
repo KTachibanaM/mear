@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/KTachibanaM/mear/internal/do"
+	"github.com/KTachibanaM/mear/internal/utils"
 	"github.com/digitalocean/godo"
 	"golang.org/x/oauth2"
 
@@ -24,6 +25,7 @@ type DigitalOceanEngineProvisioner struct {
 	droplet_size       string
 	droplet_image_slug string
 	droplet_id         int
+	ssh_key_id         int
 }
 
 func NewDigitalOceanEngineProvisioner(token string, dc_picker do.DigitalOceanDataCenterPicker, droplet_name, droplet_size, droplet_image_slug string) *DigitalOceanEngineProvisioner {
@@ -50,8 +52,18 @@ func (p *DigitalOceanEngineProvisioner) createClient() (*godo.Client, *context.C
 func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_public_key []byte) (string, error) {
 	client, ctx := p.createClient()
 
+	log.Printf("creating ssh key %v...", p.droplet_name)
+	ssh_key, _, err := client.Keys.Create(*ctx, &godo.KeyCreateRequest{
+		Name:      p.droplet_name,
+		PublicKey: string(ssh_public_key),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create ssh key: %v", err)
+	}
+	p.ssh_key_id = ssh_key.ID
+
 	log.Printf("creating droplet %v...", p.droplet_name)
-	create_request := &godo.DropletCreateRequest{
+	droplet, _, err := client.Droplets.Create(*ctx, &godo.DropletCreateRequest{
 		Name:   p.droplet_name,
 		Region: p.do_dc,
 		Size:   p.droplet_size,
@@ -59,14 +71,12 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_p
 			Slug: p.droplet_image_slug,
 		},
 		SSHKeys: []godo.DropletCreateSSHKey{{
-			Fingerprint: string(ssh_public_key),
+			Fingerprint: ssh_key.Fingerprint,
 		}},
-	}
-	droplet, _, err := client.Droplets.Create(*ctx, create_request)
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to create droplet: %v", err)
 	}
-
 	p.droplet_id = droplet.ID
 
 	for i := 0; i < DigitalOceanDropletActiveStatusMaxAttempts; i++ {
@@ -94,7 +104,7 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_p
 	return ip_address, nil
 }
 
-func (p *DigitalOceanEngineProvisioner) Teardown() error {
+func (p *DigitalOceanEngineProvisioner) teardown_droplet() error {
 	if p.droplet_id == 0 {
 		return fmt.Errorf("droplet was never provisioned")
 	}
@@ -108,4 +118,29 @@ func (p *DigitalOceanEngineProvisioner) Teardown() error {
 	}
 
 	return nil
+}
+
+func (p *DigitalOceanEngineProvisioner) teardown_ssh_key() error {
+	if p.ssh_key_id == 0 {
+		return fmt.Errorf("ssh key was never provisioned")
+	}
+
+	client, ctx := p.createClient()
+
+	log.Printf("deleting ssh key %v...", p.droplet_name)
+	_, err := client.Keys.DeleteByID(*ctx, p.ssh_key_id)
+	if err != nil {
+		return fmt.Errorf("failed to request deleting ssh key: %v", err)
+	}
+
+	return nil
+}
+
+func (p *DigitalOceanEngineProvisioner) Teardown() error {
+	droplet_err := p.teardown_droplet()
+	ssh_key_err := p.teardown_ssh_key()
+	if droplet_err == nil && ssh_key_err == nil {
+		return nil
+	}
+	return utils.CombineErrors(droplet_err, ssh_key_err)
 }
