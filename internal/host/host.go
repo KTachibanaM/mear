@@ -20,8 +20,8 @@ import (
 
 var AgentExecutionTimeout = 1 * time.Hour
 
-func Host(upload_filename, save_to_filename string, skip_deprovision_engine, skip_deprovision_buckets bool) error {
-	input_ext, err := utils.InferExt(upload_filename)
+func Host(input_file, output_file string, retain_engine, retain_buckets bool) error {
+	input_ext, err := utils.InferExt(input_file)
 	if err != nil {
 		return fmt.Errorf("could not infer ext from upload filename: %v", err)
 	}
@@ -77,7 +77,7 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 
 	// 3. Upload file
 	log.Println("uploading file...")
-	err = s3.UploadFile(upload_filename, source_target, true)
+	err = s3.UploadFile(input_file, source_target, true)
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
 		return utils.CombineErrors(err, bucket_teardown_err)
@@ -152,7 +152,7 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 	}
 
 	// 7. Deprovision engine
-	if !skip_deprovision_engine {
+	if !retain_engine {
 		log.Println("deprovisioning engine...")
 		err = engine_provisioner.Teardown()
 		if err != nil {
@@ -160,13 +160,13 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 			return utils.CombineErrors(err, bucket_teardown_err)
 		}
 	} else {
-		log.Warnln("skipped deprovisioning engine. you might want to deprovision manually.")
+		log.Warnln("retaining engine. you might want to deprovision manually.")
 	}
 
 	// 8. Download file
 	if result {
 		log.Println("downloading file...")
-		err = s3.DownloadFile(save_to_filename, destination_target, true)
+		err = s3.DownloadFile(output_file, destination_target, true)
 		if err != nil {
 			bucket_teardown_err := bucket_provisioner.Teardown()
 			return utils.CombineErrors(err, bucket_teardown_err)
@@ -176,14 +176,14 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 	}
 
 	// 9. Deprovision buckets
-	if !skip_deprovision_buckets {
+	if !retain_buckets {
 		log.Println("deprovisioning buckets...")
 		err = bucket_provisioner.Teardown()
 		if err != nil {
 			return fmt.Errorf("failed to teardown buckets: %v", err)
 		}
 	} else {
-		log.Warnln("skipped deprovisioning buckets. you might want to deprovision manually.")
+		log.Warnln("retaining buckets. you might want to deprovision manually.")
 	}
 
 	return nil

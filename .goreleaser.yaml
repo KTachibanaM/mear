@@ -3,7 +3,7 @@ before:
     - go mod tidy
 builds:
   - id: mear-host
-    main: ./cmd/ffmpeg-shim
+    main: ./cmd/cli
     binary: mear
     env:
       - CGO_ENABLED=0
