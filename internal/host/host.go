@@ -18,6 +18,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var AgentExecutionTimeout = 1 * time.Hour
+
 func Host(upload_filename, save_to_filename string, skip_deprovision_engine, skip_deprovision_buckets bool) error {
 	input_ext, err := utils.InferExt(upload_filename)
 	if err != nil {
@@ -136,9 +138,10 @@ func Host(upload_filename, save_to_filename string, skip_deprovision_engine, ski
 		} else {
 			log.Printf("ssh executing command: '%v'", strings.Replace(command, encoded_agent_args, "<agent args redacted>", -1))
 		}
+		is_mear_agent := strings.Contains(command, "/root/mear-agent")
 		timeout := 1 * time.Minute
-		if strings.Contains(command, "/root/mear-agent") {
-			timeout = 5 * time.Minute
+		if is_mear_agent {
+			timeout = AgentExecutionTimeout
 		}
 		err := ssh.SshExec(ip_address, "root", private_key, command, timeout)
 		if err != nil {

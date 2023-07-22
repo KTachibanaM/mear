@@ -8,6 +8,15 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+func stream_scanner(scanner *bufio.Scanner) {
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line != "" {
+			print_log(line)
+		}
+	}
+}
+
 func SshExec(hostname, username string, private_key []byte, command string, timeout time.Duration) error {
 	// Parse private key
 	signer, err := ssh.ParsePrivateKey(private_key)
@@ -56,23 +65,8 @@ func SshExec(hostname, username string, private_key []byte, command string, time
 	}
 
 	// Continuously send the command's output over the channel
-	stdout_scanner := bufio.NewScanner(stdout)
-	stderr_scanner := bufio.NewScanner(stderr)
-	go func(stdout_scanner, stderr_scanner *bufio.Scanner) {
-		for stdout_scanner.Scan() {
-			outline := stdout_scanner.Text()
-			if outline != "" {
-				print_log(outline)
-			}
-		}
-
-		for stderr_scanner.Scan() {
-			errline := stderr_scanner.Text()
-			if errline != "" {
-				print_log(errline)
-			}
-		}
-	}(stdout_scanner, stderr_scanner)
+	go stream_scanner(bufio.NewScanner(stdout))
+	go stream_scanner(bufio.NewScanner(stderr))
 
 	// Wait for command to finish
 	err = session.Wait()
