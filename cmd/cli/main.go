@@ -1,40 +1,69 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/KTachibanaM/mear/internal/host"
-	"github.com/alexflint/go-arg"
-	log "github.com/sirupsen/logrus"
 )
 
-type args struct {
-	InputFile       string   `arg:"positional,required" help:"input file path"`
-	OutputFile      string   `arg:"positional,required" help:"output file path"`
-	Stack           string   `arg:"required" help:"stack for cloud resources. options are: dev, do"`
-	RetainEngine    bool     `default:"false" help:"retain engine (VMs or containers) after running media encoder. helpful for debugging"`
-	RetainBuckets   bool     `default:"false" help:"retain S3 buckets after running media encoder. helpful for debugging"`
-	ExtraFfmpegArgs []string `help:"extra ffmpeg args to be passed for media encoding"`
+func usage() {
+	fmt.Println("Usage: mear -i <input file> --mear-stack <stack name> [--mear-retain-engine] [--mear-retain-buckets] [extra ffmpeg args] <output file>")
+	os.Exit(1)
 }
 
-func (args) Description() string {
-	return "Self-hosted, on-demand cloud media encoding"
+func fail(msg string) {
+	fmt.Println(msg)
+	os.Exit(1)
 }
 
 func main() {
-	var args args
-	p := arg.MustParse(&args)
+	var input string
+	var output string
+	var stack string
+	retainEngine := false
+	retainBuckets := false
+	var extraFfmpegArgs []string
 
-	if _, err := os.Stat(args.InputFile); os.IsNotExist(err) {
-		p.Fail("input file does not exist")
+	args := os.Args[1:]
+	if len(args) == 0 {
+		usage()
 	}
 
-	if args.Stack != "dev" && args.Stack != "do" {
-		p.Fail("stack must be either dev or do")
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if i == len(args)-1 {
+			output = arg
+		} else if arg == "-i" {
+			input = args[i+1]
+			i++
+		} else if arg == "--mear-stack" {
+			stack = args[i+1]
+			i++
+		} else if arg == "--mear-retain-engine" {
+			retainEngine = true
+		} else if arg == "--mear-retain-buckets" {
+			retainBuckets = true
+		} else {
+			extraFfmpegArgs = append(extraFfmpegArgs, arg)
+		}
 	}
 
-	err := host.Host(args.InputFile, args.OutputFile, args.Stack, args.RetainEngine, args.RetainBuckets)
+	if _, err := os.Stat(input); os.IsNotExist(err) {
+		fail("input file does not exist")
+	}
+	if output == "" {
+		usage()
+	}
+	if stack == "" {
+		usage()
+	}
+	if stack != "dev" && stack != "do" {
+		fail("unknown stack name")
+	}
+
+	err := host.Host(input, output, stack, retainEngine, retainBuckets, extraFfmpegArgs)
 	if err != nil {
-		log.Fatalln(err)
+		fail(err.Error())
 	}
 }

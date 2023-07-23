@@ -21,7 +21,7 @@ import (
 
 var AgentExecutionTimeout = 1 * time.Hour
 
-func Host(input_file, output_file, stack string, retain_engine, retain_buckets bool) error {
+func Host(input_file, output_file, stack string, retain_engine, retain_buckets bool, extra_ffmpeg_args []string) error {
 	// 1. Get agent binary url
 	log.Println("getting agent binary url...")
 	var agent_bin AgentBinary
@@ -30,7 +30,7 @@ func Host(input_file, output_file, stack string, retain_engine, retain_buckets b
 	} else if stack == "do" {
 		agent_bin = NewGithubAgentBinary()
 	} else {
-		return fmt.Errorf("unknown stack name")
+		return fmt.Errorf("unknown stack name %v", stack)
 	}
 	agent_binary_url, err := agent_bin.RetrieveUrl()
 	if err != nil {
@@ -69,7 +69,7 @@ func Host(input_file, output_file, stack string, retain_engine, retain_buckets b
 			secret_access_key,
 		)
 	} else {
-		return fmt.Errorf("unknown stack name")
+		return fmt.Errorf("unknown stack name %v", stack)
 	}
 
 	s3_bucket := s3.NewS3Bucket(s3_session, bucket_name)
@@ -98,7 +98,7 @@ func Host(input_file, output_file, stack string, retain_engine, retain_buckets b
 	agent_args := agent.NewAgentArgs(
 		source_target,
 		destination_target,
-		[]string{},
+		extra_ffmpeg_args,
 	)
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
 	if err != nil {
@@ -140,7 +140,7 @@ func Host(input_file, output_file, stack string, retain_engine, retain_buckets b
 			"debian-11-x64",
 		)
 	} else {
-		return fmt.Errorf("unknown stack name")
+		return fmt.Errorf("unknown stack name %v", stack)
 	}
 
 	ip_address, err := engine_provisioner.Provision(agent_binary_url, public_key)
@@ -213,5 +213,9 @@ func Host(input_file, output_file, stack string, retain_engine, retain_buckets b
 		log.Warnln("retaining buckets. you might want to deprovision manually.")
 	}
 
-	return nil
+	if result {
+		return nil
+	} else {
+		return fmt.Errorf("failed to run agent")
+	}
 }

@@ -41,9 +41,8 @@ func print_agent_log(structured_log map[string]interface{}) {
 		case "error":
 			agent_log.Error(msg)
 		case "fatal":
-			agent_log.Fatal(msg)
+			agent_log.Error(msg)
 		}
-
 	}
 }
 

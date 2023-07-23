@@ -39,7 +39,7 @@ func main() {
 		if strings.Contains(err.Error(), "signal: killed") {
 			log.Warnln("ffmpeg might have been killed by os. you might want to use an engine with larger RAM.")
 		}
-		log.Errorf("failed to run agent: %v", err)
+		log.Fatalf("failed to run agent: %v", err)
 	} else {
 		log.Info("successfully ran agent")
 	}
