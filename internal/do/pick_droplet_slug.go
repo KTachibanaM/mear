@@ -2,7 +2,7 @@ package do
 
 import "fmt"
 
-var DropletSizesToSlug = map[int]map[int]string{
+var DropletRamAndCpuToSlug = map[int]map[int]string{
 	1: {
 		1: "s-1vcpu-1gb",
 	},
@@ -13,16 +13,19 @@ var DropletSizesToSlug = map[int]map[int]string{
 	4: {
 		2: "s-2vcpu-4gb",
 	},
+	8: {
+		4: "s-4vcpu-8gb",
+	},
 }
 
 func PickDropletSlug(ram, cpu int) (string, error) {
-	if _, ok := DropletSizesToSlug[ram]; !ok {
+	if _, ok := DropletRamAndCpuToSlug[ram]; !ok {
 		return "", fmt.Errorf("invalid droplet ram size: %d", ram)
 	}
 
-	if _, ok := DropletSizesToSlug[ram][cpu]; !ok {
+	if _, ok := DropletRamAndCpuToSlug[ram][cpu]; !ok {
 		return "", fmt.Errorf("invalid droplet cpu count: %d", cpu)
 	}
 
-	return DropletSizesToSlug[ram][cpu], nil
+	return DropletRamAndCpuToSlug[ram][cpu], nil
 }
