@@ -16,6 +16,9 @@ var DropletRamAndCpuToSlug = map[int]map[int]string{
 	8: {
 		4: "s-4vcpu-8gb",
 	},
+	16: {
+		8: "s-8vcpu-16gb",
+	},
 }
 
 func PickDropletSlug(ram, cpu int) (string, error) {
