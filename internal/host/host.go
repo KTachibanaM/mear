@@ -52,7 +52,6 @@ func Host(
 		if err != nil {
 			return fmt.Errorf("could not get DigitalOcean Spaces credentials from env: %v", err)
 		}
-
 		do_bucket_name, err = utils.GetRandomName("mear-s3", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
 		if err != nil {
 			return fmt.Errorf("could not generate random string for bucket name: %v", err)

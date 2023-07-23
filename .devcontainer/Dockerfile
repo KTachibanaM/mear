@@ -10,4 +10,5 @@ RUN ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 RUN echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | sudo tee /etc/apt/sources.list.d/goreleaser.list
 RUN sudo apt update
-RUN sudo apt install -y goreleaser
+RUN sudo apt install -y goreleaser ntp
+RUN sudo service ntp restart
