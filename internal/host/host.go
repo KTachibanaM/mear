@@ -36,6 +36,14 @@ func Host(
 	if err != nil {
 		return fmt.Errorf("could not generate ssh key pair: %v", err)
 	}
+	input_ext, err := utils.InferExt(input_file)
+	if err != nil {
+		return fmt.Errorf("could not infer ext from input filename: %v", err)
+	}
+	output_ext, err := utils.InferExt(output_file)
+	if err != nil {
+		return fmt.Errorf("could not infer ext from output filename: %v", err)
+	}
 
 	var do_access_key_id string
 	var do_secret_access_key string
@@ -87,10 +95,6 @@ func Host(
 
 	// 2. Provision buckets
 	log.Println("provisioning buckets...")
-	input_ext, err := utils.InferExt(input_file)
-	if err != nil {
-		return fmt.Errorf("could not infer ext from upload filename: %v", err)
-	}
 	var s3_session *s3.S3Session
 	var bucket_name string
 	if stack == "dev" {
@@ -110,7 +114,7 @@ func Host(
 
 	s3_bucket := s3.NewS3Bucket(s3_session, bucket_name)
 	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%s", input_ext))
-	destination_target := s3.NewS3Target(s3_bucket, "output.mp4")
+	destination_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("output.%s", output_ext))
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
 	err = bucket_provisioner.Provision(
