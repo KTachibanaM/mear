@@ -91,7 +91,7 @@ func main() {
 		fail("do ram and cpu must be specified")
 	}
 
-	err := host.Host(input, output, stack, retainEngine, retainBuckets, extraFfmpegArgs, doRam, doCpu)
+	err := host.HostCli(input, output, stack, retainEngine, retainBuckets, extraFfmpegArgs, doRam, doCpu)
 	if err != nil {
 		fail(err.Error())
 	}

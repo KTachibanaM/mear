@@ -19,9 +19,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Host(
-	input_file string,
-	destination_target *s3.S3Target,
+var AgentExecutionTimeout = 1 * time.Hour
+
+func HostCli(
+	input_file,
+	output_file,
 	stack string,
 	retain_engine,
 	retain_buckets bool,
@@ -38,10 +40,10 @@ func Host(
 	if err != nil {
 		return fmt.Errorf("could not infer ext from input filename: %v", err)
 	}
-	// output_ext, err := utils.InferExt(output_file)
-	// if err != nil {
-	// 	return fmt.Errorf("could not infer ext from output filename: %v", err)
-	// }
+	output_ext, err := utils.InferExt(output_file)
+	if err != nil {
+		return fmt.Errorf("could not infer ext from output filename: %v", err)
+	}
 
 	var do_access_key_id string
 	var do_secret_access_key string
@@ -112,7 +114,7 @@ func Host(
 
 	s3_bucket := s3.NewS3Bucket(s3_session, bucket_name)
 	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%s", input_ext))
-	// destination_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("output.%s", output_ext))
+	destination_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("output.%s", output_ext))
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
 	err = bucket_provisioner.Provision(
@@ -211,16 +213,16 @@ func Host(
 	}
 
 	// 8. Download file
-	// if result {
-	// 	log.Println("downloading file...")
-	// 	err = s3.DownloadFile(output_file, destination_target, true)
-	// 	if err != nil {
-	// 		bucket_teardown_err := bucket_provisioner.Teardown()
-	// 		return utils.CombineErrors(err, bucket_teardown_err)
-	// 	}
-	// } else {
-	// 	log.Warnln("failed to run agent. skipped downloading file.")
-	// }
+	if result {
+		log.Println("downloading file...")
+		err = s3.DownloadFile(output_file, destination_target, true)
+		if err != nil {
+			bucket_teardown_err := bucket_provisioner.Teardown()
+			return utils.CombineErrors(err, bucket_teardown_err)
+		}
+	} else {
+		log.Warnln("failed to run agent. skipped downloading file.")
+	}
 
 	// 9. Deprovision buckets
 	if !retain_buckets {
