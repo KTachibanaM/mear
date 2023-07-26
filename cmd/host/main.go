@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/KTachibanaM/mear/internal/host"
+	log "github.com/sirupsen/logrus"
 )
 
 func fail(msg string) {
@@ -30,6 +31,8 @@ func success(msg string) {
 }
 
 func main() {
+	log.SetFormatter(&log.JSONFormatter{})
+
 	reader := bufio.NewReader(os.Stdin)
 	stdin, err := reader.ReadString('\n')
 	if err != nil {
