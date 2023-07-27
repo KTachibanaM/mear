@@ -9,10 +9,11 @@ import (
 )
 
 func usage() {
-	fmt.Println("Usage: mear -i <input file> --mear-stack <stack name> [--mear-retain-engine] [--mear-retain-buckets] [--mear-do-ram] <ram in gb> [--mear-do-cpu] <cpu core count> [extra ffmpeg args] <output file>")
+	fmt.Println("Usage: mear -i <input file> --mear-stack <stack name> --mear-agent-timeout <timeout minutes> [--mear-retain-engine] [--mear-retain-buckets] [--mear-do-ram] <ram in gb> [--mear-do-cpu] <cpu core count> [extra ffmpeg args] <output file>")
 	fmt.Println("       -i <input file>:                input file path")
 	fmt.Println("       --mear-stack <stack name>:      cloud stack to use for media encoding")
 	fmt.Println("                                       options are 'do' (DigitalOcean) and 'dev' (development in devcontainer)")
+	fmt.Println("       --mear-agent-timeout <minutes>: agent execution timeout in minutes")
 	fmt.Println("       --mear-retain-engine:           retain the engine (VPS or container) after media encoding")
 	fmt.Println("                                       default is false")
 	fmt.Println("       --mear-retain-buckets:          retain the S3 buckets after media encoding")
@@ -36,6 +37,7 @@ func fail(msg string) {
 func main() {
 	var input string
 	var output string
+	var agentExecutionTimeoutMinutes int
 	var stack string
 	retainEngine := false
 	retainBuckets := false
@@ -54,6 +56,10 @@ func main() {
 			output = arg
 		} else if arg == "-i" {
 			input = args[i+1]
+			i++
+		} else if arg == "--mear-agent-timeout" {
+			agentExecutionTimeoutMinutesStr := args[i+1]
+			agentExecutionTimeoutMinutes, _ = strconv.Atoi(agentExecutionTimeoutMinutesStr)
 			i++
 		} else if arg == "--mear-stack" {
 			stack = args[i+1]
@@ -91,7 +97,17 @@ func main() {
 		fail("do ram and cpu must be specified")
 	}
 
-	err := cli.Cli(input, output, stack, retainEngine, retainBuckets, extraFfmpegArgs, doRam, doCpu)
+	err := cli.Cli(
+		input,
+		output,
+		agentExecutionTimeoutMinutes,
+		stack,
+		retainEngine,
+		retainBuckets,
+		extraFfmpegArgs,
+		doRam,
+		doCpu,
+	)
 	if err != nil {
 		fail(err.Error())
 	}

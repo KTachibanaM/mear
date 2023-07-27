@@ -75,6 +75,7 @@ func main() {
 	err = host.Host(
 		host_args.InputFile,
 		host_args.DestinationTarget,
+		host_args.AgentExecutionTimeoutMinutes,
 		host_args.Stack,
 		false,
 		false,

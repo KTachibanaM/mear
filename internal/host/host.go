@@ -19,11 +19,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var AgentExecutionTimeout = 1 * time.Hour
-
 func Host(
 	input_file string,
 	destination_target *s3.S3Target,
+	agent_execution_timeout_minutes int,
 	stack string,
 	retain_engine,
 	retain_buckets bool,
@@ -178,7 +177,7 @@ func Host(
 		is_mear_agent := strings.Contains(command, "/root/mear-agent")
 		timeout := 1 * time.Minute
 		if is_mear_agent {
-			timeout = AgentExecutionTimeout
+			timeout = time.Duration(agent_execution_timeout_minutes) * time.Minute
 		}
 		err := ssh.SshExec(ip_address, "root", private_key, command, timeout)
 		if err != nil {
