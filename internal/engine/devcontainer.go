@@ -76,7 +76,7 @@ func (p *DevcontainerEngineProvisioner) Provision(agent_binary_url string, ssh_p
 	}
 	for i := 0; i < len(commands); i++ {
 		command := commands[i]
-		log.Infof("docker executing command: '%v'\n", command)
+		log.Infof("docker executing command: '%v'", command)
 
 		exec_create_resp, err := cli.ContainerExecCreate(context.Background(), p.container_id, types.ExecConfig{
 			Cmd: []string{"sh", "-c", command},

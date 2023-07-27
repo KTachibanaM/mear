@@ -9,6 +9,9 @@ type HostArgs struct {
 	ExtraFfmpegArgs   []string     `json:"extra_ffmpeg_args"`
 	DropletRam        int          `json:"droplet_ram"`
 	DropletCpu        int          `json:"droplet_cpu"`
+	DoAccessKeyId     string       `json:"do_access_key_id"`
+	DoSecretAccessKey string       `json:"do_secret_access_key"`
+	DoToken           string       `json:"do_token"`
 }
 
 type HostResult struct {

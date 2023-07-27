@@ -55,7 +55,21 @@ func main() {
 		fail("unknown stack name")
 	}
 	if host_args.Stack == "do" && (host_args.DropletRam == 0 || host_args.DropletCpu == 0) {
-		fail("do ram and cpu must be specified")
+		if host_args.DropletRam == 0 {
+			fail("do ram must be specified")
+		}
+		if host_args.DropletCpu == 0 {
+			fail("do cpu must be specified")
+		}
+		if host_args.DoAccessKeyId == "" {
+			fail("do spaces access key id must be specified. go to https://cloud.digitalocean.com/account/api/spaces to generate one.")
+		}
+		if host_args.DoSecretAccessKey == "" {
+			fail("do spaces secret access key must be specified. go to https://cloud.digitalocean.com/account/api/spaces to generate one.")
+		}
+		if host_args.DoToken == "" {
+			fail("do token must be specified. go to https://cloud.digitalocean.com/account/api/tokens to generate one.")
+		}
 	}
 
 	err = host.Host(
@@ -67,6 +81,9 @@ func main() {
 		host_args.ExtraFfmpegArgs,
 		host_args.DropletRam,
 		host_args.DropletCpu,
+		host_args.DoAccessKeyId,
+		host_args.DoSecretAccessKey,
+		host_args.DoToken,
 	)
 	if err != nil {
 		fail(err.Error())
