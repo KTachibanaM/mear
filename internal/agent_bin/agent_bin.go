@@ -1,4 +1,4 @@
-package host
+package agent_bin
 
 import (
 	"encoding/json"

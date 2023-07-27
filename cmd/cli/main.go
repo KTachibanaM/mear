@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/KTachibanaM/mear/internal/host"
+	"github.com/KTachibanaM/mear/internal/cli"
 )
 
 func usage() {
@@ -91,7 +91,7 @@ func main() {
 		fail("do ram and cpu must be specified")
 	}
 
-	err := host.HostCli(input, output, stack, retainEngine, retainBuckets, extraFfmpegArgs, doRam, doCpu)
+	err := cli.Cli(input, output, stack, retainEngine, retainBuckets, extraFfmpegArgs, doRam, doCpu)
 	if err != nil {
 		fail(err.Error())
 	}

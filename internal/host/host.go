@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/KTachibanaM/mear/internal/agent"
+	"github.com/KTachibanaM/mear/internal/agent_bin"
 	"github.com/KTachibanaM/mear/internal/bucket"
 	"github.com/KTachibanaM/mear/internal/do"
 	"github.com/KTachibanaM/mear/internal/engine"
@@ -17,6 +18,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+var AgentExecutionTimeout = 1 * time.Hour
 
 func Host(
 	input_file string,
@@ -65,15 +68,15 @@ func Host(
 
 	// 1. Get agent binary url
 	log.Println("getting agent binary url...")
-	var agent_bin AgentBinary
+	var ab agent_bin.AgentBinary
 	if stack == "dev" {
-		agent_bin = NewDevContainerAgentBinary()
+		ab = agent_bin.NewDevContainerAgentBinary()
 	} else if stack == "do" {
-		agent_bin = NewGithubAgentBinary()
+		ab = agent_bin.NewGithubAgentBinary()
 	} else {
 		return fmt.Errorf("unknown stack name %v", stack)
 	}
-	agent_binary_url, err := agent_bin.RetrieveUrl()
+	agent_binary_url, err := ab.RetrieveUrl()
 	if err != nil {
 		return fmt.Errorf("could not get agent binary url: %v", err)
 	}
