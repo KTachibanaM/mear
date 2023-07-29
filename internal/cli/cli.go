@@ -15,7 +15,6 @@ import (
 	"github.com/KTachibanaM/mear/internal/s3"
 	"github.com/KTachibanaM/mear/internal/ssh"
 	"github.com/KTachibanaM/mear/internal/utils"
-	"github.com/joho/godotenv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -30,6 +29,9 @@ func Cli(
 	extra_ffmpeg_args []string,
 	droplet_ram,
 	droplet_cpu int,
+	do_access_key_id,
+	do_secret_access_key,
+	do_token string,
 ) error {
 	// 0. Pre-validations
 	private_key, public_key, err := ssh.Keygen()
@@ -45,28 +47,13 @@ func Cli(
 		return fmt.Errorf("could not infer ext from output filename: %v", err)
 	}
 
-	var do_access_key_id string
-	var do_secret_access_key string
 	var do_bucket_name string
-	var do_token string
 	var droplet_name string
 	var droplet_slug string
 	if stack == "do" {
-		err := godotenv.Load()
-		if err != nil {
-			return fmt.Errorf("could not load .env file: %v", err)
-		}
-		do_access_key_id, do_secret_access_key, err = bucket.GetDigitalOceanSpacesCredentialsFromEnv()
-		if err != nil {
-			return fmt.Errorf("could not get DigitalOcean Spaces credentials from env: %v", err)
-		}
 		do_bucket_name, err = utils.GetRandomName("mear-s3", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
 		if err != nil {
 			return fmt.Errorf("could not generate random string for bucket name: %v", err)
-		}
-		do_token, err = do.GetDigitalOceanTokenFromEnv()
-		if err != nil {
-			return fmt.Errorf("could not get DigitalOcean token from env: %v", err)
 		}
 		droplet_name, err = utils.GetRandomName("mear-engine", engine.DigitalOceanDropletSuffixLength, engine.DigitalOceanDropletNameMaxLength)
 		if err != nil {

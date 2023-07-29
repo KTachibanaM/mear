@@ -48,13 +48,16 @@ func main() {
 	if _, err := os.Stat(host_args.InputFile); os.IsNotExist(err) {
 		fail("input file does not exist")
 	}
+	if host_args.AgentExecutionTimeoutMinutes == 0 {
+		fail("agent timeout must be specified")
+	}
 	if host_args.Stack == "" {
 		fail("stack must be specified")
 	}
 	if host_args.Stack != "dev" && host_args.Stack != "do" {
 		fail("unknown stack name")
 	}
-	if host_args.Stack == "do" && (host_args.DropletRam == 0 || host_args.DropletCpu == 0) {
+	if host_args.Stack == "do" {
 		if host_args.DropletRam == 0 {
 			fail("do ram must be specified")
 		}

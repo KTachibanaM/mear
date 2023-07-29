@@ -44,6 +44,9 @@ func main() {
 	var doRam int
 	var doCpu int
 	var extraFfmpegArgs []string
+	var doAccessKeyId string
+	var doSecretAccessKey string
+	var doToken string
 
 	args := os.Args[1:]
 	if len(args) == 0 {
@@ -87,14 +90,46 @@ func main() {
 	if output == "" {
 		usage()
 	}
+	if agentExecutionTimeoutMinutes == 0 {
+		fail("agent timeout must be specified")
+	}
 	if stack == "" {
 		usage()
 	}
 	if stack != "dev" && stack != "do" {
 		fail("unknown stack name")
 	}
-	if stack == "do" && (doRam == 0 || doCpu == 0) {
-		fail("do ram and cpu must be specified")
+	if stack == "do" {
+		if doRam == 0 {
+			fail("do ram must be specified")
+		}
+		if doCpu == 0 {
+			fail("do cpu must be specified")
+		}
+		doAccessKeyId = get_config(
+			"do",
+			"access_key_id",
+			"DigitalOcean Spaces access key id. Go to https://cloud.digitalocean.com/account/api/spaces to generate one",
+		)
+		if doAccessKeyId == "" {
+			fail("do spaces access key id must be specified")
+		}
+		doSecretAccessKey = get_config(
+			"do",
+			"secret_access_key",
+			"DigitalOcean Spaces secret access key. Go to https://cloud.digitalocean.com/account/api/spaces to generate one",
+		)
+		if doSecretAccessKey == "" {
+			fail("do spaces secret access key must be specified")
+		}
+		doToken = get_config(
+			"do",
+			"token",
+			"DigitalOcean API token. Go to https://cloud.digitalocean.com/account/api/tokens to generate one",
+		)
+		if doToken == "" {
+			fail("do token must be specified")
+		}
 	}
 
 	err := cli.Cli(
@@ -107,6 +142,9 @@ func main() {
 		extraFfmpegArgs,
 		doRam,
 		doCpu,
+		doAccessKeyId,
+		doSecretAccessKey,
+		doToken,
 	)
 	if err != nil {
 		fail(err.Error())

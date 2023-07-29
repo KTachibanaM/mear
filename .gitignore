@@ -1,5 +1,4 @@
 bin
-.env
 dist/
 
 *.mp4
