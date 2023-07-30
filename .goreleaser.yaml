@@ -11,6 +11,10 @@ builds:
   - id: mear-host
     main: ./cmd/host
     binary: mear-host
+    goos:
+      - linux
+    goarch:
+      - amd64
     env:
       - CGO_ENABLED=0
   - id: mear-agent
