@@ -12,7 +12,7 @@ import (
 func ask_for_config_value(prompt string) (string, error) {
 	var value string
 	for {
-		fmt.Printf("%s: ", prompt)
+		fmt.Printf("%v: ", prompt)
 		_, err := fmt.Scanln(&value)
 		if err != nil {
 			return "", err

@@ -135,11 +135,11 @@ func main() {
 	err := cli.Cli(
 		input,
 		output,
+		extraFfmpegArgs,
 		agentExecutionTimeoutMinutes,
 		stack,
 		retainEngine,
 		retainBuckets,
-		extraFfmpegArgs,
 		doRam,
 		doCpu,
 		doAccessKeyId,

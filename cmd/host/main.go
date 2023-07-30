@@ -45,8 +45,10 @@ func main() {
 		fail("failed to unmarshal json")
 	}
 
-	if _, err := os.Stat(host_args.InputFile); os.IsNotExist(err) {
-		fail("input file does not exist")
+	for _, host_job := range host_args.Jobs {
+		if _, err := os.Stat(host_job.InputFile); os.IsNotExist(err) {
+			fail(fmt.Sprintf("input file does not exist: %v", host_job.InputFile))
+		}
 	}
 	if host_args.AgentExecutionTimeoutMinutes == 0 {
 		fail("agent timeout must be specified")
@@ -76,13 +78,11 @@ func main() {
 	}
 
 	err = host.Host(
-		host_args.InputFile,
-		host_args.DestinationTarget,
+		host_args.Jobs,
 		host_args.AgentExecutionTimeoutMinutes,
 		host_args.Stack,
 		false,
 		false,
-		host_args.ExtraFfmpegArgs,
 		host_args.DropletRam,
 		host_args.DropletCpu,
 		host_args.DoAccessKeyId,

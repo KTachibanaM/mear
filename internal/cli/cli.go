@@ -22,11 +22,11 @@ import (
 func Cli(
 	input_file,
 	output_file string,
+	extra_ffmpeg_args []string,
 	agent_execution_timeout_minutes int,
 	stack string,
 	retain_engine,
 	retain_buckets bool,
-	extra_ffmpeg_args []string,
 	droplet_ram,
 	droplet_cpu int,
 	do_access_key_id,
@@ -100,8 +100,8 @@ func Cli(
 	}
 
 	s3_bucket := s3.NewS3Bucket(s3_session, bucket_name)
-	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%s", input_ext))
-	destination_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("output.%s", output_ext))
+	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%v", input_ext))
+	destination_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("output.%v", output_ext))
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
 	err = bucket_provisioner.Provision(

@@ -17,7 +17,7 @@ func ProvisionBucket(s3_bucket *mear_s3.S3Bucket) error {
 		return fmt.Errorf("could not create S3 session for bucket %v provisioning: %v", s3_bucket, err)
 	}
 
-	log.Printf("creating bucket %v...", s3_bucket)
+	log.Printf("creating bucket %v ...", s3_bucket)
 	_, err = s3.New(sess).CreateBucket(
 		&s3.CreateBucketInput{
 			Bucket: aws.String(s3_bucket.BucketName),
@@ -35,7 +35,7 @@ func TeardownBucket(s3_bucket *mear_s3.S3Bucket) error {
 		return fmt.Errorf("could not create S3 session for bucket %v teardown: %v", s3_bucket, err)
 	}
 
-	log.Printf("emptying bucket %v...", s3_bucket)
+	log.Printf("emptying bucket %v ...", s3_bucket)
 	resp, err := s3.New(sess).ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String(s3_bucket.BucketName),
 	})
@@ -61,7 +61,7 @@ func TeardownBucket(s3_bucket *mear_s3.S3Bucket) error {
 		}
 	}
 
-	log.Printf("deleting bucket %v...", s3_bucket)
+	log.Printf("deleting bucket %v ...", s3_bucket)
 	_, err = s3.New(sess).DeleteBucket(
 		&s3.DeleteBucketInput{
 			Bucket: aws.String(s3_bucket.BucketName),

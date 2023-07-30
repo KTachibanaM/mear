@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/devcontainers/go:0-1.20-bullseye
 
 WORKDIR /root
-RUN curl https://dl.min.io/client/mc/release/linux-amd64/mc.RELEASE.2023-06-06T13-48-56Z -o /usr/bin/mc
+RUN curl https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2023-06-06T13-48-56Z -o /usr/bin/mc
 RUN chmod +x /usr/bin/mc
 
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"

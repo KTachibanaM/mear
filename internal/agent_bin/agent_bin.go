@@ -23,7 +23,7 @@ func (r *DevContainerAgentBinary) RetrieveUrl() (string, error) {
 
 var GitHubRepoOwner = "KTachibanaM"
 var GitHubRepoName = "mear"
-var GitHubReleaseApiUrl = fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", GitHubRepoOwner, GitHubRepoName)
+var GitHubReleaseApiUrl = fmt.Sprintf("https://api.github.com/repos/%v/%v/releases/latest", GitHubRepoOwner, GitHubRepoName)
 
 type GitHubRelease struct {
 	TagName string `json:"tag_name"`

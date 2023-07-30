@@ -52,7 +52,7 @@ func (p *DigitalOceanEngineProvisioner) createClient() (*godo.Client, *context.C
 func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_public_key []byte) (string, error) {
 	client, ctx := p.createClient()
 
-	log.Printf("creating ssh key %v...", p.droplet_name)
+	log.Printf("creating ssh key %v ...", p.droplet_name)
 	ssh_key, _, err := client.Keys.Create(*ctx, &godo.KeyCreateRequest{
 		Name:      p.droplet_name,
 		PublicKey: string(ssh_public_key),
@@ -62,7 +62,7 @@ func (p *DigitalOceanEngineProvisioner) Provision(agent_binary_url string, ssh_p
 	}
 	p.ssh_key_id = ssh_key.ID
 
-	log.Printf("creating droplet %v...", p.droplet_name)
+	log.Printf("creating droplet %v ...", p.droplet_name)
 	droplet, _, err := client.Droplets.Create(*ctx, &godo.DropletCreateRequest{
 		Name:   p.droplet_name,
 		Region: p.do_dc,
@@ -111,7 +111,7 @@ func (p *DigitalOceanEngineProvisioner) teardown_droplet() error {
 
 	client, ctx := p.createClient()
 
-	log.Printf("deleting droplet %v...", p.droplet_name)
+	log.Printf("deleting droplet %v ...", p.droplet_name)
 	_, err := client.Droplets.Delete(*ctx, p.droplet_id)
 	if err != nil {
 		return fmt.Errorf("failed to request deleting droplet: %v", err)
@@ -127,7 +127,7 @@ func (p *DigitalOceanEngineProvisioner) teardown_ssh_key() error {
 
 	client, ctx := p.createClient()
 
-	log.Printf("deleting ssh key %v...", p.droplet_name)
+	log.Printf("deleting ssh key %v ...", p.droplet_name)
 	_, err := client.Keys.DeleteByID(*ctx, p.ssh_key_id)
 	if err != nil {
 		return fmt.Errorf("failed to request deleting ssh key: %v", err)

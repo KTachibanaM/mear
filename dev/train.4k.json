@@ -1,18 +1,41 @@
 {
-    "input_file": "./dev/train.4k.mp4",
-    "destination_target": {
-        "s3Bucket": {
-            "s3Session": {
-                "endpointUrl": "http://minio:9000",
-                "region": "us-east-1",
-                "accessKeyId": "minioadmin",
-                "secretAccessKey": "minioadmin",
-                "pathStyleUrl": true
-            },
-            "bucketName": "mear-bin"
+    "jobs": [
+        {
+            "input_file": "./dev/train.4k.mp4",
+            "destination_target": {
+                "s3Bucket": {
+                    "s3Session": {
+                        "endpointUrl": "http://minio:9000",
+                        "region": "us-east-1",
+                        "accessKeyId": "minioadmin",
+                        "secretAccessKey": "minioadmin",
+                        "pathStyleUrl": true
+                    },
+                    "bucketName": "mear-destination"
+                },
+                "objectKey": "train.4k.avi"
+            }
         },
-        "objectKey": "output.avi"
-    },
+        {
+            "input_file": "./dev/castle.4k.mp4",
+            "destination_target": {
+                "s3Bucket": {
+                    "s3Session": {
+                        "endpointUrl": "http://minio:9000",
+                        "region": "us-east-1",
+                        "accessKeyId": "minioadmin",
+                        "secretAccessKey": "minioadmin",
+                        "pathStyleUrl": true
+                    },
+                    "bucketName": "mear-destination"
+                },
+                "objectKey": "castle.720p.avi"
+            },
+            "extra_ffmpeg_args": [
+                "-vf", "scale=-1:720"
+            ]
+        }
+    ],
     "agent_execution_timeout_minutes": 60,
     "stack": "dev"
 }

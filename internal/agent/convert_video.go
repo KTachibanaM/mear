@@ -12,6 +12,10 @@ func ffmpegSplitLogLines(data []byte, atEOF bool) (advance int, token []byte, er
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
+	if i := bytes.Index(data, []byte{'\r', '\n'}); i >= 0 {
+		// Found a carriage return and newline sequence, return the line up to that point
+		return i + 2, data[0:i], nil
+	}
 	if i := bytes.IndexByte(data, '\r'); i >= 0 {
 		// Found a carriage return character, return the line up to that point
 		return i + 1, data[0:i], nil

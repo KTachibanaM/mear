@@ -19,14 +19,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type Job struct {
+	InputFile         string       `json:"input_file"`
+	DestinationTarget *s3.S3Target `json:"destination_target"`
+	ExtraFfmpegArgs   []string     `json:"extra_ffmpeg_args"`
+}
+
 func Host(
-	input_file string,
-	destination_target *s3.S3Target,
+	jobs []*Job,
 	agent_execution_timeout_minutes int,
 	stack string,
 	retain_engine,
 	retain_buckets bool,
-	extra_ffmpeg_args []string,
 	droplet_ram,
 	droplet_cpu int,
 	do_access_key_id,
@@ -38,14 +42,14 @@ func Host(
 	if err != nil {
 		return fmt.Errorf("could not generate ssh key pair: %v", err)
 	}
-	input_ext, err := utils.InferExt(input_file)
-	if err != nil {
-		return fmt.Errorf("could not infer ext from input filename: %v", err)
+	var input_exts []string
+	for _, job := range jobs {
+		ext, err := utils.InferExt(job.InputFile)
+		if err != nil {
+			return fmt.Errorf("could not infer ext from input filename %v: %v", job.InputFile, err)
+		}
+		input_exts = append(input_exts, ext)
 	}
-	// output_ext, err := utils.InferExt(output_file)
-	// if err != nil {
-	// 	return fmt.Errorf("could not infer ext from output filename: %v", err)
-	// }
 
 	var do_bucket_name string
 	var droplet_name string
@@ -99,11 +103,8 @@ func Host(
 		return fmt.Errorf("unknown stack name %v", stack)
 	}
 
-	s3_bucket := s3.NewS3Bucket(s3_session, bucket_name)
-	source_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("input.%s", input_ext))
-	// destination_target := s3.NewS3Target(s3_bucket, fmt.Sprintf("output.%s", output_ext))
-
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
+	s3_bucket := s3.NewS3Bucket(s3_session, bucket_name)
 	err = bucket_provisioner.Provision(
 		[]*s3.S3Bucket{s3_bucket},
 	)
@@ -111,22 +112,34 @@ func Host(
 		bucket_teardown_err := bucket_provisioner.Teardown()
 		return utils.CombineErrors(err, bucket_teardown_err)
 	}
+	var source_targets []*s3.S3Target
+	for i, input_ext := range input_exts {
+		source_targets = append(source_targets, s3.NewS3Target(s3_bucket, fmt.Sprintf("%v.%v", i, input_ext)))
+	}
 
-	// 3. Upload file
-	log.Println("uploading file...")
-	err = s3.UploadFile(input_file, source_target, true)
-	if err != nil {
-		bucket_teardown_err := bucket_provisioner.Teardown()
-		return utils.CombineErrors(err, bucket_teardown_err)
+	// 3. Upload videos
+	for i, job := range jobs {
+		log.Printf("uploading video %v ...", job.InputFile)
+		err = s3.UploadFile(job.InputFile, source_targets[i], true)
+		if err != nil {
+			bucket_teardown_err := bucket_provisioner.Teardown()
+			return utils.CombineErrors(err, bucket_teardown_err)
+		}
 	}
 
 	// 4. Gather agent args
 	log.Println("gathering agent args...")
-	agent_args := agent.NewAgentArgs(
-		source_target,
-		destination_target,
-		extra_ffmpeg_args,
-	)
+	agent_args := agent.NewAgentArgsWithoutJob()
+	for i, job := range jobs {
+		agent_args.Jobs = append(
+			agent_args.Jobs,
+			agent.NewAgentJob(
+				source_targets[i],
+				job.DestinationTarget,
+				job.ExtraFfmpegArgs,
+			),
+		)
+	}
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
@@ -199,19 +212,7 @@ func Host(
 		log.Warnln("retaining engine. you might want to deprovision manually.")
 	}
 
-	// 8. Download file
-	// if result {
-	// 	log.Println("downloading file...")
-	// 	err = s3.DownloadFile(output_file, destination_target, true)
-	// 	if err != nil {
-	// 		bucket_teardown_err := bucket_provisioner.Teardown()
-	// 		return utils.CombineErrors(err, bucket_teardown_err)
-	// 	}
-	// } else {
-	// 	log.Warnln("failed to run agent. skipped downloading file.")
-	// }
-
-	// 9. Deprovision buckets
+	// 8. Deprovision buckets
 	if !retain_buckets {
 		log.Println("deprovisioning buckets...")
 		err = bucket_provisioner.Teardown()
