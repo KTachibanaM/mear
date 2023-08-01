@@ -114,7 +114,7 @@ func Host(
 	}
 	var source_targets []*s3.S3Target
 	for i, input_ext := range input_exts {
-		source_targets = append(source_targets, s3.NewS3Target(s3_bucket, fmt.Sprintf("%v.%v", i, input_ext)))
+		source_targets = append(source_targets, s3.NewS3Target(s3_bucket, fmt.Sprintf("%v.in.%v", i, input_ext)))
 	}
 
 	// 3. Upload videos

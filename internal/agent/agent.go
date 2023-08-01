@@ -42,7 +42,7 @@ func Agent(agent_args *AgentArgs) error {
 		if err != nil {
 			return fmt.Errorf("could not infer the extension from the object key %v: %v", job.S3Source.ObjectKey, err)
 		}
-		input_video := path.Join(video_workspace, fmt.Sprintf("%v.%v", i, ext))
+		input_video := path.Join(video_workspace, fmt.Sprintf("%v.in.%v", i, ext))
 		err = s3.DownloadFile(input_video, job.S3Source, true)
 		if err != nil {
 			return err
@@ -58,7 +58,7 @@ func Agent(agent_args *AgentArgs) error {
 		if err != nil {
 			return err
 		}
-		output_video := path.Join(video_workspace, fmt.Sprintf("%v.%v", i, output_ext))
+		output_video := path.Join(video_workspace, fmt.Sprintf("%v.out.%v", i, output_ext))
 		err = ConvertVideo(ffmpeg_executable, input_videos[i], output_video, job.ExtraFfmpegArgs)
 		if err != nil {
 			return err
