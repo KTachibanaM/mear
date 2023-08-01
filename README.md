@@ -1,5 +1,5 @@
 # mear
-Self-hosted, on-demand cloud media encoding
+Bring-your-own-cloud, on-demand media encoding
 
 "mear" stands for "Media Encoder At-Request"
 
