@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/KTachibanaM/mear/internal/agent"
@@ -34,13 +33,12 @@ func main() {
 	}
 
 	// Run agent
-	err = agent.Agent(&agent_args)
-	if err != nil {
-		if strings.Contains(err.Error(), "signal: killed") {
-			log.Warnln("ffmpeg might have been killed by os. you might want to use an engine with larger RAM.")
-		}
-		log.Fatalf("failed to run agent: %v", err)
-	} else {
+	failure := agent.Agent(&agent_args)
+	if failure == nil {
 		log.Info("successfully ran agent")
+	} else {
+		log.WithFields(log.Fields{
+			"failure": failure,
+		}).Fatal("failed to run agent")
 	}
 }

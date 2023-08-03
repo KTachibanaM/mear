@@ -34,6 +34,22 @@
             "extra_ffmpeg_args": [
                 "-vf", "scale=-1:720"
             ]
+        },
+        {
+            "input_file": "./dev/fake-video.txt",
+            "destination_target": {
+                "s3Bucket": {
+                    "s3Session": {
+                        "endpointUrl": "http://minio:9000",
+                        "region": "us-east-1",
+                        "accessKeyId": "minioadmin",
+                        "secretAccessKey": "minioadmin",
+                        "pathStyleUrl": true
+                    },
+                    "bucketName": "mear-destination"
+                },
+                "objectKey": "fake-video.avi"
+            }
         }
     ],
     "agent_execution_timeout_minutes": 60,

@@ -25,10 +25,21 @@ func print_agent_log(structured_log map[string]interface{}) {
 			context = "agent"
 		}
 
+		// Parse out potential failure
+		failure, ok := structured_log["failure"].(map[string]interface{})
+		if !ok {
+			failure = nil
+		}
+
 		// Log agent log
 		agent_log := log.WithFields(log.Fields{
 			"context": context,
 		})
+		if failure != nil {
+			agent_log = agent_log.WithFields(log.Fields{
+				"failure": failure,
+			})
+		}
 		switch level {
 		case "trace":
 			agent_log.Trace(msg)
