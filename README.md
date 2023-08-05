@@ -5,7 +5,7 @@ Bring-your-own-cloud, on-demand media encoding
 
 
 ## Motivation
-For indie developers, media encoding can be expensive. You need to either.
+For indie hackers, media encoding can be expensive. You need to either.
 
 * use a cloud encoding service, which can be expensive (see [pricing comparison](#pricing-comparison))
 * keep a powerful VPS instance always-on, which is expensive if you don't fully utilize it
