@@ -6,12 +6,23 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/KTachibanaM/mear/internal/agent"
 	"github.com/KTachibanaM/mear/internal/host"
 	log "github.com/sirupsen/logrus"
 )
 
 func fail(msg string) {
 	bytes, err := json.Marshal(NewHostResult(false, msg))
+	if err != nil {
+		fmt.Println("{\"success\": false, \"message\": \"failed to marshal json\"}")
+	} else {
+		fmt.Println(string(bytes))
+	}
+	os.Exit(1)
+}
+
+func failWithAgentFailure(agent_failure *agent.AgentFailure) {
+	bytes, err := json.Marshal(NewHostResultWithAgentFailure(agent_failure))
 	if err != nil {
 		fmt.Println("{\"success\": false, \"message\": \"failed to marshal json\"}")
 	} else {
@@ -77,7 +88,7 @@ func main() {
 		}
 	}
 
-	err = host.Host(
+	agent_failure, err := host.Host(
 		host_args.Jobs,
 		host_args.AgentExecutionTimeoutMinutes,
 		host_args.Stack,
@@ -89,7 +100,9 @@ func main() {
 		host_args.DoSecretAccessKey,
 		host_args.DoToken,
 	)
-	if err != nil {
+	if agent_failure != nil {
+		failWithAgentFailure(agent_failure)
+	} else if err != nil {
 		fail(err.Error())
 	} else {
 		success("successfully ran mear-host")

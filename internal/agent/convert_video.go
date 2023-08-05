@@ -3,6 +3,7 @@ package agent
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"os/exec"
 
 	log "github.com/sirupsen/logrus"
@@ -45,12 +46,19 @@ func ConvertVideo(ffmpeg_executable, input_video, output_video string, extra_arg
 		"context": "ffmpeg",
 	})
 
+	last_line := ""
 	scanner := bufio.NewScanner(stderr)
 	scanner.Split(ffmpegSplitLogLines)
 	for scanner.Scan() {
 		m := scanner.Text()
 		context_log.Println(m)
+		last_line = m
 	}
 
-	return cmd.Wait()
+	cmd_err := cmd.Wait()
+	if cmd_err != nil {
+		return fmt.Errorf(last_line)
+	}
+
+	return nil
 }

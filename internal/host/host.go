@@ -36,17 +36,17 @@ func Host(
 	do_access_key_id,
 	do_secret_access_key,
 	do_token string,
-) error {
+) (*agent.AgentFailure, error) {
 	// 0. Pre-validations
 	private_key, public_key, err := ssh.Keygen()
 	if err != nil {
-		return fmt.Errorf("could not generate ssh key pair: %v", err)
+		return nil, fmt.Errorf("could not generate ssh key pair: %v", err)
 	}
 	var input_exts []string
 	for _, job := range jobs {
 		ext, err := utils.InferExt(job.InputFile)
 		if err != nil {
-			return fmt.Errorf("could not infer ext from input filename %v: %v", job.InputFile, err)
+			return nil, fmt.Errorf("could not infer ext from input filename %v: %v", job.InputFile, err)
 		}
 		input_exts = append(input_exts, ext)
 	}
@@ -57,15 +57,15 @@ func Host(
 	if stack == "do" {
 		do_bucket_name, err = utils.GetRandomName("mear-s3", bucket.DigitalOceanSpacesBucketSuffixLength, bucket.DigitalOceanSpacesBucketNameMaxLength)
 		if err != nil {
-			return fmt.Errorf("could not generate random string for bucket name: %v", err)
+			return nil, fmt.Errorf("could not generate random string for bucket name: %v", err)
 		}
 		droplet_name, err = utils.GetRandomName("mear-engine", engine.DigitalOceanDropletSuffixLength, engine.DigitalOceanDropletNameMaxLength)
 		if err != nil {
-			return fmt.Errorf("could not generate random string for droplet name: %v", err)
+			return nil, fmt.Errorf("could not generate random string for droplet name: %v", err)
 		}
 		droplet_slug, err = do.PickDropletSlug(droplet_ram, droplet_cpu)
 		if err != nil {
-			return fmt.Errorf("could not pick droplet slug: %v", err)
+			return nil, fmt.Errorf("could not pick droplet slug: %v", err)
 		}
 	}
 
@@ -77,11 +77,11 @@ func Host(
 	} else if stack == "do" {
 		ab = agent_bin.NewGithubAgentBinary()
 	} else {
-		return fmt.Errorf("unknown stack name %v", stack)
+		return nil, fmt.Errorf("unknown stack name %v", stack)
 	}
 	agent_binary_url, err := ab.RetrieveUrl()
 	if err != nil {
-		return fmt.Errorf("could not get agent binary url: %v", err)
+		return nil, fmt.Errorf("could not get agent binary url: %v", err)
 	}
 
 	// 2. Provision buckets
@@ -100,7 +100,7 @@ func Host(
 		)
 		bucket_name = do_bucket_name
 	} else {
-		return fmt.Errorf("unknown stack name %v", stack)
+		return nil, fmt.Errorf("unknown stack name %v", stack)
 	}
 
 	bucket_provisioner := bucket.NewMultiBucketProvisioner()
@@ -110,7 +110,7 @@ func Host(
 	)
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
-		return utils.CombineErrors(err, bucket_teardown_err)
+		return nil, utils.CombineErrors(err, bucket_teardown_err)
 	}
 	var source_targets []*s3.S3Target
 	for i, input_ext := range input_exts {
@@ -123,7 +123,7 @@ func Host(
 		err = s3.UploadFile(job.InputFile, source_targets[i], true)
 		if err != nil {
 			bucket_teardown_err := bucket_provisioner.Teardown()
-			return utils.CombineErrors(err, bucket_teardown_err)
+			return nil, utils.CombineErrors(err, bucket_teardown_err)
 		}
 	}
 
@@ -143,7 +143,7 @@ func Host(
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
-		return utils.CombineErrors(err, bucket_teardown_err)
+		return nil, utils.CombineErrors(err, bucket_teardown_err)
 	}
 	encoded_agent_args := base64.StdEncoding.EncodeToString(agent_args_json)
 
@@ -162,18 +162,18 @@ func Host(
 			"debian-11-x64",
 		)
 	} else {
-		return fmt.Errorf("unknown stack name %v", stack)
+		return nil, fmt.Errorf("unknown stack name %v", stack)
 	}
 
 	ip_address, err := engine_provisioner.Provision(agent_binary_url, public_key)
 	if err != nil {
 		engine_teardown_err := engine_provisioner.Teardown()
 		bucket_teardown_err := bucket_provisioner.Teardown()
-		return utils.CombineErrors(err, engine_teardown_err, bucket_teardown_err)
+		return nil, utils.CombineErrors(err, engine_teardown_err, bucket_teardown_err)
 	}
 
 	// 6. Run agent on engine
-	result := true
+	var ssh_status *ssh.SshStatus
 	commands := []string{
 		"apt update",
 		"apt install -y curl",
@@ -192,10 +192,9 @@ func Host(
 		if is_mear_agent {
 			timeout = time.Duration(agent_execution_timeout_minutes) * time.Minute
 		}
-		err := ssh.SshExec(ip_address, "root", private_key, command, timeout)
-		if err != nil {
+		ssh_status = ssh.SshExec(ip_address, "root", private_key, command, timeout)
+		if ssh_status.Status != ssh.SshSuccess {
 			log.Errorf("failed to ssh execute command: %v", err)
-			result = false
 			break
 		}
 	}
@@ -206,7 +205,7 @@ func Host(
 		err = engine_provisioner.Teardown()
 		if err != nil {
 			bucket_teardown_err := bucket_provisioner.Teardown()
-			return utils.CombineErrors(err, bucket_teardown_err)
+			return nil, utils.CombineErrors(err, bucket_teardown_err)
 		}
 	} else {
 		log.Warnln("retaining engine. you might want to deprovision manually.")
@@ -217,15 +216,17 @@ func Host(
 		log.Println("deprovisioning buckets...")
 		err = bucket_provisioner.Teardown()
 		if err != nil {
-			return fmt.Errorf("failed to teardown buckets: %v", err)
+			return nil, fmt.Errorf("failed to teardown buckets: %v", err)
 		}
 	} else {
 		log.Warnln("retaining buckets. you might want to deprovision manually.")
 	}
 
-	if result {
-		return nil
+	if ssh_status.Status == ssh.SshSuccess {
+		return nil, nil
+	} else if ssh_status.Status == ssh.SshError {
+		return nil, fmt.Errorf("failed to ssh execute command: %v", ssh_status.Err)
 	} else {
-		return fmt.Errorf("failed to run agent")
+		return ssh_status.AgentFailure, nil
 	}
 }

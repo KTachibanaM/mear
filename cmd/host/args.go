@@ -1,6 +1,9 @@
 package main
 
-import "github.com/KTachibanaM/mear/internal/host"
+import (
+	"github.com/KTachibanaM/mear/internal/agent"
+	"github.com/KTachibanaM/mear/internal/host"
+)
 
 type HostArgs struct {
 	Jobs                         []*host.Job `json:"jobs"`
@@ -22,5 +25,17 @@ func NewHostResult(success bool, message string) *HostResult {
 	return &HostResult{
 		Success: success,
 		Message: message,
+	}
+}
+
+type HostResultWithAgentFailure struct {
+	Success      bool                `json:"success"`
+	AgentFailure *agent.AgentFailure `json:"agent_failure"`
+}
+
+func NewHostResultWithAgentFailure(agent_failure *agent.AgentFailure) *HostResultWithAgentFailure {
+	return &HostResultWithAgentFailure{
+		Success:      false,
+		AgentFailure: agent_failure,
 	}
 }
