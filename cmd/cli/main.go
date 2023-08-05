@@ -132,7 +132,7 @@ func main() {
 		}
 	}
 
-	err := cli.Cli(
+	agent_failure, err := cli.Cli(
 		input,
 		output,
 		extraFfmpegArgs,
@@ -146,7 +146,9 @@ func main() {
 		doSecretAccessKey,
 		doToken,
 	)
-	if err != nil {
+	if agent_failure != nil {
+		fail(agent_failure.FirstJobError().Error())
+	} else if err != nil {
 		fail(err.Error())
 	}
 }

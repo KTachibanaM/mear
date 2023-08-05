@@ -3,10 +3,13 @@ package ssh
 import (
 	"encoding/json"
 
+	"github.com/KTachibanaM/mear/internal/agent"
 	log "github.com/sirupsen/logrus"
 )
 
-func print_agent_log(structured_log map[string]interface{}) {
+func print_agent_log_and_parse_failure(structured_log map[string]interface{}) *agent.AgentFailure {
+	var parsed_agent_failure *agent.AgentFailure
+
 	// Parse out msg
 	msg, ok := structured_log["msg"].(string)
 	if !ok {
@@ -29,6 +32,9 @@ func print_agent_log(structured_log map[string]interface{}) {
 		failure, ok := structured_log["failure"].(map[string]interface{})
 		if !ok {
 			failure = nil
+		} else {
+			failure_bytes, _ := json.Marshal(failure)
+			json.Unmarshal(failure_bytes, &parsed_agent_failure)
 		}
 
 		// Log agent log
@@ -55,16 +61,18 @@ func print_agent_log(structured_log map[string]interface{}) {
 			agent_log.Error(msg)
 		}
 	}
+
+	return parsed_agent_failure
 }
 
-func print_log(line string) {
+func print_log_and_parse_agent_failure(line string) *agent.AgentFailure {
 	var structured_log map[string]interface{}
 	err := json.Unmarshal([]byte(line), &structured_log)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"context": "ssh",
 		}).Info(line)
-	} else {
-		print_agent_log(structured_log)
+		return nil
 	}
+	return print_agent_log_and_parse_failure(structured_log)
 }

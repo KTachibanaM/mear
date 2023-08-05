@@ -90,6 +90,8 @@ Run `./dev/download-demo-videos.sh` to download demo videos used for testing. Ru
 
 Run `./dev/test-host.sh` to test the `mear-host` CLI (application-facing). The script encodes two mp4 files into two avi files and saves them into the `./dev` directory.
 
+Run `./dev/test-host-fail.sh` to test the `mear-host` CLI (application-facing) but with one of the three encoded files being a non-media file and hence the script will fail.
+
 Run `./dev/test-cli.sh` to test the `mear` CLI (user-facing). The script encodes an mp4 file into an avi file and saves it into the `./dev` directory.
 
 We use docker containers and `minio` in this development environment for the `engine` and S3 buckets.
