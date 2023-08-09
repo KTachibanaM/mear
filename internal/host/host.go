@@ -19,10 +19,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Job struct {
-	InputFile         string       `json:"input_file"`
+type JobOutput struct {
 	DestinationTarget *s3.S3Target `json:"destination_target"`
 	ExtraFfmpegArgs   []string     `json:"extra_ffmpeg_args"`
+}
+
+type Job struct {
+	InputFile string       `json:"input_file"`
+	Outputs   []*JobOutput `json:"outputs"`
 }
 
 func Host(
@@ -129,16 +133,16 @@ func Host(
 
 	// 4. Gather agent args
 	log.Println("gathering agent args...")
-	agent_args := agent.NewAgentArgsWithoutJob()
+	agent_args := agent.NewAgentArgs()
 	for i, job := range jobs {
-		agent_args.Jobs = append(
-			agent_args.Jobs,
-			agent.NewAgentJob(
-				source_targets[i],
-				job.DestinationTarget,
-				job.ExtraFfmpegArgs,
-			),
-		)
+		agent_job := agent.NewAgentJob(source_targets[i])
+		for _, output := range job.Outputs {
+			agent_job.AddJobDestination(
+				output.DestinationTarget,
+				output.ExtraFfmpegArgs,
+			)
+		}
+		agent_args.AddJob(agent_job)
 	}
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
 	if err != nil {

@@ -3,16 +3,18 @@ package agent
 import "fmt"
 
 type AgentJobError struct {
-	JobIndex int    `json:"jobIndex"`
-	Error    string `json:"error"`
-	Note     string `json:"note"`
+	JobIndex            int    `json:"jobIndex"`
+	JobDestinationIndex int    `json:"jobDestinationIndex"`
+	Error               string `json:"error"`
+	Note                string `json:"note"`
 }
 
-func NewAgentJobError(jobIndex int, error error, note string) *AgentJobError {
+func NewAgentJobError(jobIndex, jobDestinationIndex int, error error, note string) *AgentJobError {
 	return &AgentJobError{
-		JobIndex: jobIndex,
-		Error:    error.Error(),
-		Note:     note,
+		JobIndex:            jobIndex,
+		JobDestinationIndex: jobDestinationIndex,
+		Error:               error.Error(),
+		Note:                note,
 	}
 }
 
