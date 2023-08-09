@@ -80,20 +80,11 @@ Some caveats for the comparison.
 
 
 ## Development
-Clone and [open the project in VSCode Dev Container](https://code.visualstudio.com/docs/devcontainers/containers#_quick-start-open-an-existing-folder-in-a-container).
-
-VSCode should have installed all development dependencies.
-
-Run `make` to compile the Go binaries.
-
-Run `./dev/download-demo-videos.sh` to download demo videos used for testing. Running this command is a prerequisite for running the following two commands.
-
-Run `./dev/test-host.sh` to test the `mear-host` CLI (application-facing). The script encodes two mp4 files into two avi files and saves them into the `./dev` directory.
-
-Run `./dev/test-host-fail.sh` to test the `mear-host` CLI (application-facing) but with one of the three encoded files being a non-media file and hence the script will fail.
-
-Run `./dev/test-cli.sh` to test the `mear` CLI (user-facing). The script encodes an mp4 file into an avi file and saves it into the `./dev` directory.
-
-We use docker containers and `minio` in this development environment for the `engine` and S3 buckets.
-
-Run `./dev/clean-dev.sh` to clean up development docker containers and S3 buckets if `mear` fails to clean up properly.
+* Clone and [open the project in VSCode Dev Container](https://code.visualstudio.com/docs/devcontainers/containers#_quick-start-open-an-existing-folder-in-a-container).
+* VSCode should have installed all development dependencies.
+* Run `make` to compile the Go binaries.
+* Run `make test` to run tests.
+    * Run `./dev/test-host-success.sh` to test the `mear-host` CLI (application-facing). The script encodes multiple mp4 files into avi files and saves them into the `./dev` directory.
+    * Run `./dev/test-host-partial-failure.sh` to test the `mear-host` CLI (application-facing) but with one of the encoded files being a non-media file and hence the script will fail.
+    * Run `./dev/test-cli.sh` to test the `mear` CLI (user-facing). The script encodes an mp4 file into an avi file and saves it into the `./dev` directory.
+* We use docker containers and `minio` in this development environment for the `engine` and S3 buckets. Run `./dev/clean-dev.sh` to clean up development docker containers and S3 buckets if `mear` fails to clean up properly.
