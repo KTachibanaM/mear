@@ -54,7 +54,10 @@
                             "bucketName": "mear-destination"
                         },
                         "objectKey": "castle.720p.avi"
-                    }
+                    },
+                    "extra_ffmpeg_args": [
+                        "-vf", "scale=-1:720"
+                    ]
                 }
             ]
         }
