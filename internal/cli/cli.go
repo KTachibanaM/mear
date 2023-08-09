@@ -125,6 +125,7 @@ func Cli(
 	agent_args := agent.NewAgentArgs()
 	agent_job := agent.NewAgentJob(source_target)
 	agent_job.AddJobDestination(destination_target, extra_ffmpeg_args)
+	agent_args.AddJob(agent_job)
 	agent_args_json, err := json.MarshalIndent(agent_args, "", "")
 	if err != nil {
 		bucket_teardown_err := bucket_provisioner.Teardown()
