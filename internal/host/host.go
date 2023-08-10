@@ -31,6 +31,7 @@ type Job struct {
 
 func Host(
 	jobs []*Job,
+	jobSharedDestinationS3Bucket *s3.S3Bucket,
 	agent_execution_timeout_minutes int,
 	stack string,
 	retain_engine,
@@ -46,6 +47,7 @@ func Host(
 	if err != nil {
 		return nil, fmt.Errorf("could not generate ssh key pair: %v", err)
 	}
+
 	var input_exts []string
 	for _, job := range jobs {
 		ext, err := utils.InferExt(job.InputFile)
@@ -53,6 +55,17 @@ func Host(
 			return nil, fmt.Errorf("could not infer ext from input filename %v: %v", job.InputFile, err)
 		}
 		input_exts = append(input_exts, ext)
+	}
+
+	for jobIndex, job := range jobs {
+		for jobOutputIndex, jobOutput := range job.Outputs {
+			if jobOutput.DestinationTarget.S3Bucket == nil {
+				if jobSharedDestinationS3Bucket == nil {
+					return nil, fmt.Errorf("job %v and output %v has no destination bucket", jobIndex, jobOutputIndex)
+				}
+				jobOutput.DestinationTarget.S3Bucket = jobSharedDestinationS3Bucket
+			}
+		}
 	}
 
 	var do_bucket_name string

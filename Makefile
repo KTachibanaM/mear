@@ -9,5 +9,6 @@ upload-agent-binary: build
 test: upload-agent-binary
 		./dev/download-demo-video.sh \
 		&& ./dev/test-host-success.sh \
+		&& ./dev/test-host-shared-destination-bucket.sh \
 		&& ./dev/test-host-partial-failure.sh \
 		&& ./dev/test-cli.sh
