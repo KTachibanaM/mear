@@ -3,7 +3,7 @@ package s3
 import "fmt"
 
 type S3Target struct {
-	S3Bucket  *S3Bucket `json:"s3Bucket"`
+	S3Bucket  *S3Bucket `json:"s3Bucket,omitempty"`
 	ObjectKey string    `json:"objectKey"`
 }
 

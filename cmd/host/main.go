@@ -90,6 +90,7 @@ func main() {
 
 	agent_failure, err := host.Host(
 		host_args.Jobs,
+		host_args.JobSharedDestinationS3Bucket,
 		host_args.AgentExecutionTimeoutMinutes,
 		host_args.Stack,
 		false,
