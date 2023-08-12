@@ -1,5 +1,5 @@
 # mear
-Bring-your-own-cloud, on-demand media encoding
+Bring-your-own-cloud media encoding
 
 "mear" stands for "Media Encoder At-Request"
 
